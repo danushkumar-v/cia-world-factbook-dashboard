@@ -8,7 +8,7 @@ from plotly.subplots import make_subplots
 import pandas as pd
 import numpy as np
 from typing import Optional, List, Dict, Tuple
-from config import APP_CONFIG
+from src.config import APP_CONFIG
 
 
 class VisualizationFactory:

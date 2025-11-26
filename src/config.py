@@ -9,8 +9,8 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-# Base directory
-BASE_DIR = Path(__file__).parent
+# Base directory - go up one level from src to project root
+BASE_DIR = Path(__file__).parent.parent
 
 # Application settings
 class Config:
