@@ -1,0 +1,131 @@
+# 🌍 Global Insights Explorer
+
+[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Dash](https://img.shields.io/badge/Dash-2.14+-green.svg)](https://dash.plotly.com/)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+A production-ready, interactive data visualization web application for exploring CIA World Factbook data across 259 countries and territories.
+
+## ✨ Features
+
+- 🗺️ **Advanced Maps**: Choropleth maps, 3D globe visualizations, sunburst charts
+- 📊 **Interactive Analytics**: Multi-dimensional comparisons, correlation analysis, regional insights  
+- 🎨 **Professional Design**: Modern UI with custom gradients and animations
+- ⚡ **High Performance**: Optimized data processing with caching
+- 📱 **Responsive**: Works on desktop, tablet, and mobile
+
+## 🚀 Quick Start
+
+### Installation
+
+```powershell
+# Clone the repository
+git clone <repository-url>
+cd Project
+
+# Run setup script (recommended)
+.\scripts\start.ps1
+
+# OR manually install
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+python app.py
+```
+
+### Access the App
+Open your browser: **http://localhost:8050**
+
+## 📊 Data Coverage
+
+- **259** Countries/Territories
+- **7** Data Domains (Geography, Demographics, Economy, Energy, Transportation, Communications, Government)
+- **100+** Metrics
+- **Source**: CIA World Factbook 2024-2025
+
+## 📁 Project Structure
+
+```
+Project/
+├── app.py                      # Main application entry point
+├── src/
+│   ├── config.py              # Configuration settings
+│   ├── components/            # Reusable UI components
+│   │   └── ui_components.py
+│   ├── layouts/               # Page layouts
+│   │   └── main_layout.py
+│   ├── callbacks/             # Dash callbacks
+│   │   └── app_callbacks.py
+│   └── utils/                 # Utility modules
+│       ├── data_processor.py  # Data processing
+│       ├── visualizations.py  # Chart factories
+│       ├── utils.py          # Helper functions
+│       └── export_utils.py   # Export utilities
+├── assets/                    # CSS and static assets
+│   └── styles.css
+├── Dataset/                   # Data files
+├── docs/                      # Documentation
+│   ├── README.md
+│   ├── QUICKSTART.md
+│   └── VISUALIZATION_GUIDE.md
+├── scripts/                   # Utility scripts
+│   └── start.ps1
+├── tests/                     # Test files
+├── requirements.txt           # Python dependencies
+├── Dockerfile                 # Docker configuration
+└── .gitignore                # Git ignore rules
+```
+
+## 🎨 Visualizations
+
+- **Choropleth Maps** - Country-level color coding
+- **3D Globe** - Interactive rotating Earth
+- **Radar Charts** - Multi-metric comparisons
+- **Scatter Plots** - Correlation analysis with trendlines
+- **Regional Bars** - Continental aggregations
+- **Sunburst Charts** - Hierarchical visualizations
+- **Heatmaps** - Correlation matrices
+
+## 🛠️ Technology Stack
+
+- **Framework**: Dash, Plotly, Flask
+- **UI**: Dash Bootstrap Components
+- **Data**: Pandas, NumPy
+- **Visualization**: Plotly Express, Plotly Graph Objects
+- **Deployment**: Gunicorn, Docker
+
+## 📖 Documentation
+
+- [Quick Start Guide](docs/QUICKSTART.md)
+- [Visualization Guide](docs/VISUALIZATION_GUIDE.md)
+- [Full Documentation](docs/README.md)
+
+## 🚀 Deployment
+
+### Docker
+```bash
+docker build -t global-insights .
+docker run -p 8050:8050 global-insights
+```
+
+### Production Server
+```powershell
+waitress-serve --host=127.0.0.1 --port=8050 app:server
+```
+
+## 🤝 Contributing
+
+Contributions welcome! Please read our contributing guidelines first.
+
+## 📄 License
+
+This project is licensed under the MIT License.
+
+## 🙏 Acknowledgments
+
+- Data: CIA World Factbook 2024-2025
+- Built with Dash, Plotly, and Python
+
+---
+
+**Made with ❤️ for data visualization**

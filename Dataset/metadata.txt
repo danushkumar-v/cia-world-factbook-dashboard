@@ -1,0 +1,52 @@
+About Dataset
+CIA World Factbook 2024–2025: Global Multi-Domain Metrics
+💡 Dataset Overview: A Comprehensive Global Reference
+This dataset is a comprehensive, multi-domain compilation derived from the CIA World Factbook 2024–2025.
+It provides a unified and structured source for comparative analysis across seven critical dimensions covering 259 global entities including sovereign nations and dependent territories.
+
+It serves as a foundational resource for projects in:
+
+🌍 Economics
+🏛️ Political Science
+🌱 Environmental Studies
+📊 Data Visualization
+🤖 Machine Learning
+The dataset enables cross-domain insights into the factors driving global stability and development.
+
+📚 Data Source and Provenance
+Official Source: CIA World Factbook (2024–2025)
+Authority: U.S. Central Intelligence Agency
+Coverage: Global (Sovereign nations + dependent territories)
+The Factbook is a high-authority governmental reference providing detailed geographic, political, demographic, and socio-economic data.
+
+🗃️ Dataset Structure: 7 Linked CSV Files
+Each file is linked by a common key column - Country - enabling easy joins across domains.
+
+File Name	Primary Domain	Key Metrics Included
+geography_data.csv	Physical Geography	Total Area, Land Use (Forest, Agriculture, Pasture), Land Boundaries, Coastline, Highest/Lowest Elevation
+demographics_data.csv	People & Society	Total Population, Growth Rate, Birth/Death/Migration Rates, Median Age, Sex Ratio, Literacy Rates
+economy_data.csv	Economic Activity	Real GDP (PPP & Official), GDP Growth Rate, GDP per Capita, Unemployment, Budget Balances, Public Debt, Trade (Exports/Imports)
+energy_data.csv	Energy & Environment	Electricity Access/Capacity, Fuel Consumption/Production (Coal, Petroleum, Gas), Carbon Dioxide Emissions
+transportation_data.csv	Infrastructure	Total Roadways, Railways, Waterways, Pipelines (Gas, Oil), Paved/Unpaved Airports, Heliports
+communications_data.csv	Digital Connectivity	Fixed/Mobile Telephone Subscriptions, Internet Users, Broadband Subscriptions, Internet Country Code
+government_and_civics_data.csv	Political Structure	Capital City, Capital Coordinates, Government Type, Suffrage Age
+⚙️ Data Integrity & Preprocessing Requirements
+Raw values from the Factbook are human-readable and contain:
+
+Unit suffixes (e.g., "sq km", "km", "m")
+Percent signs ("%")
+Thousands separators (e.g., "2,381,740")
+Before quantitative analysis, perform data cleaning.
+
+🔧 Required Cleaning Steps:
+Remove unit labels, commas, and percentage signs.
+Convert the cleaned columns to a numeric type (e.g., float).
+🧹 Example Preprocessing Workflow (pandas)
+# Cleaning a column with comma separators and unit suffix
+df['Area_Total'] = (
+    df['Area_Total']
+      .str.replace(',', '', regex=True)
+      .str.replace(' sq km', '', regex=True)
+      .astype(float)
+)
+
