@@ -131,7 +131,7 @@ def create_filters_panel(metrics_info):
                 value='Blues',
                 clearable=False,
                 className='mb-3',
-                title="Design Principle (M2_08 Weber's Law): Sequential/Uniform scales ensure perceptually equal steps. Rainbow removed (non-uniform)."
+                #title="Design Principle (M2_08 Weber's Law): Sequential/Uniform scales ensure perceptually equal steps. Rainbow removed (non-uniform)."
             )
         ], className="control-group"),
         
@@ -207,7 +207,7 @@ def create_comparison_panel(country_list):
                 value='radar',
                 clearable=False,
                 className='mb-3',
-                title="Design Principle (M2_02-04 Channel Effectiveness): Channel ranking determines visualization choice based on task and data dimensionality."
+                #title="Design Principle (M2_02-04 Channel Effectiveness): Channel ranking determines visualization choice based on task and data dimensionality."
             )
         ]),
         
