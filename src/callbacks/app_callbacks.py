@@ -114,7 +114,16 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
         State('comparison-chart-type', 'value')
     )
     def update_comparison_chart(n_clicks, countries, metrics, chart_type):
-        """Update country comparison chart"""
+        """
+        Update country comparison chart based on selected visualization type.
+        
+        Design Principle (M2_02-04 Channel Effectiveness):
+        - Radar: Best for 5-7 metrics (angular position channels are limited)
+        - Heatmap: Best for 8+ metrics (spatial positioning more effective at scale)
+        - Scatter: Best for 2 metrics (x,y position perfectly matched to data)
+        
+        Reference: M2_02-04 from JBI100 Visualization course
+        """
         if not countries or not metrics or len(countries) < 2:
             return go.Figure().add_annotation(
                 text="Please select at least 2 countries and metrics to compare",
@@ -124,9 +133,29 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
             )
         
         if chart_type == 'radar':
+            # Best for 5-7 metrics (channel effectiveness: angular position)
             return viz_factory.create_comparison_radar(merged_data, countries, metrics)
+        elif chart_type == 'heatmap':
+            # Best for 8+ metrics (channel effectiveness: spatial position, hue)
+            return viz_factory.create_comparison_heatmap(merged_data, countries, metrics)
+        elif chart_type == 'scatter':
+            # Best for 2 metrics (channel effectiveness: x,y position)
+            if len(metrics) == 2:
+                return viz_factory.create_comparison_scatter(merged_data, countries, metrics)
+            else:
+                return go.Figure().add_annotation(
+                    text="Scatter plot requires exactly 2 metrics. Please select 2 metrics.",
+                    xref="paper", yref="paper",
+                    x=0.5, y=0.5, showarrow=False,
+                    font=dict(size=14)
+                )
         
-        return go.Figure()
+        return go.Figure().add_annotation(
+            text="Unknown chart type",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, showarrow=False,
+            font=dict(size=16)
+        )
 
     @app.callback(
         Output('correlation-chart', 'figure'),

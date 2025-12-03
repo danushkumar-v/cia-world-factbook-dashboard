@@ -121,17 +121,17 @@ def create_filters_panel(metrics_info):
             dcc.Dropdown(
                 id='color-scheme-selector',
                 options=[
-                    {'label': 'Blues', 'value': 'Blues'},
-                    {'label': 'Reds', 'value': 'Reds'},
-                    {'label': 'Greens', 'value': 'Greens'},
-                    {'label': 'Viridis', 'value': 'Viridis'},
-                    {'label': 'Plasma', 'value': 'Plasma'},
-                    {'label': 'Inferno', 'value': 'Inferno'},
-                    {'label': 'Rainbow', 'value': 'Rainbow'},
+                    {'label': 'Blues (Sequential)', 'value': 'Blues'},
+                    {'label': 'Greens (Sequential)', 'value': 'Greens'},
+                    {'label': 'Reds (Sequential)', 'value': 'Reds'},
+                    {'label': 'Viridis (Uniform)', 'value': 'Viridis'},
+                    {'label': 'Plasma (Uniform)', 'value': 'Plasma'},
+                    {'label': 'Inferno (Uniform)', 'value': 'Inferno'},
                 ],
                 value='Blues',
                 clearable=False,
-                className='mb-3'
+                className='mb-3',
+                title="Design Principle (M2_08 Weber's Law): Sequential/Uniform scales ensure perceptually equal steps. Rainbow removed (non-uniform)."
             )
         ], className="control-group"),
         
@@ -200,13 +200,14 @@ def create_comparison_panel(country_list):
             dcc.Dropdown(
                 id='comparison-chart-type',
                 options=[
-                    {'label': '🕸️ Radar Chart', 'value': 'radar'},
-                    {'label': '📊 Bar Chart', 'value': 'bar'},
-                    {'label': '📈 Line Chart', 'value': 'line'}
+                    {'label': '🕸️ Radar Chart (5-7 metrics)', 'value': 'radar'},
+                    {'label': '🔥 Heatmap (8+ metrics)', 'value': 'heatmap'},
+                    {'label': '📍 Scatter (2 metrics)', 'value': 'scatter'}
                 ],
                 value='radar',
                 clearable=False,
-                className='mb-3'
+                className='mb-3',
+                title="Design Principle (M2_02-04 Channel Effectiveness): Channel ranking determines visualization choice based on task and data dimensionality."
             )
         ]),
         
