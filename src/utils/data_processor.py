@@ -194,6 +194,11 @@ class DataProcessor:
         for name, df in self.datasets.items():
             if name != 'geography':
                 merged = merged.merge(df, on='Country', how='left', suffixes=('', f'_{name}'))
+
+        # Remove aggregate/non-country rows that can distort charts (e.g., WORLD totals)
+        if 'Country' in merged.columns:
+            country_norm = merged['Country'].astype(str).str.strip().str.upper()
+            merged = merged.loc[~country_norm.isin({'WORLD'})].copy()
         
         # Add continent classification
         merged['Continent'] = merged['Country'].apply(self._classify_continent)

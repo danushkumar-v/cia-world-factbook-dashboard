@@ -5,7 +5,7 @@
 ### Option 1: Automated Setup (Recommended)
 ```powershell
 # Run the automated setup script
-.\start.ps1
+\.\scripts\start.ps1
 ```
 
 ### Option 2: Manual Setup
@@ -49,7 +49,7 @@ docker run -p 8050:8050 global-insights
    - Metric: Real GDP per Capita
    - Viz Type: Choropleth Map
    - Color: Blues
-   - Click "Refresh Visualization"
+   - Click "Apply"
 
    **Example 2: Internet vs GDP**
    - Go to "Correlation" tab
@@ -61,7 +61,7 @@ docker run -p 8050:8050 global-insights
    **Example 3: Country Comparison**
    - Go to "Compare" tab
    - Select: USA, China, India, Germany
-   - Metrics: Total_Population, Real_GDP_PPP_billion_USD, internet_users_total
+   - Metrics: Select 3–8 metrics (e.g., Total_Population, Real_GDP_per_Capita_USD, internet_users_total)
    - Chart Type: Radar Chart
    - Click "Compare Countries"
 

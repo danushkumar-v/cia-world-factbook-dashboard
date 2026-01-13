@@ -76,13 +76,13 @@ The application will be available at `http://localhost:8050`
 ```
 Project/
 ├── app.py                      # Main Dash application
-├── config.py                   # Configuration settings
-├── data_processor.py           # Data cleaning and processing
-├── visualizations.py           # Chart and map generators
+├── run_app.py                  # Safer runner with traceback output
 ├── requirements.txt            # Python dependencies
 ├── .env.example               # Environment variables template
 ├── assets/
 │   └── styles.css             # Custom CSS styling
+├── scripts/
+│   └── start.ps1               # Windows setup + launch script
 ├── Dataset/
 │   ├── geography_data.csv
 │   ├── demographics_data.csv
@@ -91,7 +91,13 @@ Project/
 │   ├── transportation_data.csv
 │   ├── communications_data.csv
 │   └── government_and_civics_data.csv
-└── .cache/                    # Cached processed data
+├── src/
+│   ├── config.py               # App configuration
+│   ├── callbacks/              # Dash callbacks
+│   ├── components/             # Reusable UI components
+│   ├── layouts/                # Page layouts
+│   └── utils/                  # Data processing + visualization utilities
+└── .cache/                     # Cached processed data (optional)
 ```
 
 ## 🎨 Visualization Types
