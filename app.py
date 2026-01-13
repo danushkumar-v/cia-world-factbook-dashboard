@@ -56,7 +56,7 @@ if __name__ == '__main__':
     logger.info(f"Starting {config.APP_NAME} v{config.VERSION}")
     logger.info(f"Running on http://{config.HOST}:{config.PORT}")
     
-    app.run_server(
+    app.run(
         debug=config.DEBUG,
         host=config.HOST,
         port=config.PORT

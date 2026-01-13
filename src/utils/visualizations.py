@@ -1,496 +1,890 @@
 """
-Visualization Components
-Advanced chart and map creators with production-ready styling
+Visualization Components - Clean, Safe, Project-Compatible
+Optimized for the CIA World Factbook Dashboard
 """
 import plotly.graph_objects as go
 import plotly.express as px
-from plotly.subplots import make_subplots
 import pandas as pd
-import numpy as np
-from typing import Optional, List, Dict, Tuple
-from src.config import APP_CONFIG
+from typing import List, Optional
 
 
 class VisualizationFactory:
-    """Factory for creating advanced visualizations"""
-    
-    def __init__(self, config=APP_CONFIG):
+    def __init__(self, config):
         self.config = config
-        self.default_template = config.CHART_TEMPLATE
-        self.color_schemes = config.COLOR_SCHEMES
-    
+
+    def apply_theme(self, fig: go.Figure, theme: Optional[str] = None) -> go.Figure:
+        """Apply a consistent light/dark styling to Plotly figures.
+
+        Dash CSS variables won't automatically restyle Plotly SVG/canvas.
+        This keeps charts visually consistent with the app theme.
+        """
+
+        is_dark = (theme or "light") == "dark"
+
+        fig.update_layout(
+            template="plotly_dark" if is_dark else "plotly_white",
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="rgba(255,255,255,0.90)" if is_dark else "rgba(17,24,39,0.92)"),
+            hoverlabel=dict(
+                bgcolor="rgba(17,24,39,0.95)" if is_dark else "rgba(255,255,255,0.95)",
+                bordercolor="rgba(255,255,255,0.18)" if is_dark else "rgba(17,24,39,0.18)",
+                font=dict(color="rgba(255,255,255,0.92)" if is_dark else "rgba(17,24,39,0.92)"),
+            ),
+            transition=dict(duration=350, easing="cubic-in-out"),
+        )
+
+        # Geo charts need a little extra love
+        if "geo" in fig.layout:
+            fig.update_geos(
+                bgcolor="rgba(0,0,0,0)",
+                landcolor="rgb(28, 36, 52)" if is_dark else "rgb(240, 240, 240)",
+                oceancolor="rgb(8, 12, 20)" if is_dark else "rgb(225, 240, 255)",
+                showocean=True,
+            )
+
+        # Make gridlines subtle (where applicable)
+        axis_color = "rgba(255,255,255,0.88)" if is_dark else "rgba(17,24,39,0.85)"
+        grid_color = "rgba(255,255,255,0.08)" if is_dark else "rgba(0,0,0,0.06)"
+
+        fig.update_xaxes(
+            showgrid=True,
+            gridcolor=grid_color,
+            tickfont=dict(color=axis_color),
+            automargin=True,
+        )
+        fig.update_yaxes(
+            showgrid=True,
+            gridcolor=grid_color,
+            tickfont=dict(color=axis_color),
+            automargin=True,
+        )
+
+        # Preserve user interactions across updates when possible
+        fig.update_layout(uirevision="theme")
+
+        return fig
+
+    # ------------------------------
+    # Helper: Clean metric name
+    # ------------------------------
+    def _label(self, metric: str) -> str:
+        curated = {
+            "Real_GDP_per_Capita_USD": "GDP per Capita (USD)",
+            "Total_Population": "Population",
+            "internet_users_total": "Internet Users",
+            "Area_Total": "Total Area",
+            "Land_Area": "Land Area",
+            "Water_Area": "Water Area",
+        }
+        if metric in curated:
+            return curated[metric]
+
+        s = metric.replace("_", " ")
+        # Improve common acronyms
+        s = s.replace("Usd", "USD").replace("Gdp", "GDP")
+        return s.title().replace("Usd", "USD").replace("Gdp", "GDP")
+
+    # ------------------------------
+    # 1️⃣ Choropleth (DEFAULT VIEW)
+    # ------------------------------
     def create_choropleth_map(
-        self, 
-        df: pd.DataFrame, 
+        self,
+        df: pd.DataFrame,
         metric: str,
         title: str,
-        color_scheme: str = 'Blues',
-        projection: str = 'natural earth'
+        color_scheme: str = "Viridis",
+        projection: str = "natural earth",
     ) -> go.Figure:
-        """
-        Create beautiful choropleth map with custom styling
-        
-        Args:
-            df: DataFrame with country data
-            metric: Column name to visualize
-            title: Chart title
-            color_scheme: Plotly color scale
-            projection: Map projection type
-        """
-        # Clean country names for ISO matching
-        df_map = df.copy()
-        
-        # Create the choropleth
-        fig = go.Figure(data=go.Choropleth(
-            locations=df_map['Country'],
-            z=df_map[metric],
-            locationmode='country names',
-            colorscale=color_scheme,
-            autocolorscale=False,
-            text=df_map['Country'],
-            marker_line_color='white',
-            marker_line_width=0.5,
-            colorbar=dict(
-                title=dict(
-                    text=metric.replace('_', ' ').title(),
-                    font=dict(size=14, family='Inter, sans-serif')
-                ),
-                thickness=15,
-                len=0.7,
-                bgcolor='rgba(255,255,255,0.8)',
-                bordercolor='rgba(0,0,0,0.2)',
-                borderwidth=1,
-                tickfont=dict(size=11)
-            ),
-            hovertemplate='<b>%{text}</b><br>' +
-                         f'{metric.replace("_", " ").title()}: %{{z:,.2f}}<br>' +
-                         '<extra></extra>'
-        ))
-        
-        # Update layout with beautiful styling
+
+        label = self._label(metric)
+        df_clean = df.dropna(subset=["Country", metric])
+
+        hover_tmpl = (
+            "<b>%{text}</b><br>"
+            + label
+            + ": %{z:,.2f}<extra></extra>"
+        )
+
+        fig = go.Figure(
+            data=go.Choropleth(
+                locations=df_clean["Country"],
+                locationmode="country names",
+                z=df_clean[metric],
+                text=df_clean["Country"],
+                colorscale=color_scheme,
+                autocolorscale=False,
+                marker_line_color="white",
+                colorbar=dict(title=label),
+                hovertemplate=hover_tmpl,
+            )
+        )
+
         fig.update_geos(
             projection_type=projection,
-            showcoastlines=True,
-            coastlinecolor='rgba(0,0,0,0.3)',
-            showland=True,
-            landcolor='rgb(243, 243, 243)',
             showcountries=True,
-            countrycolor='white',
-            showocean=True,
-            oceancolor='rgb(230, 245, 255)',
-            showlakes=True,
-            lakecolor='rgb(230, 245, 255)',
-            bgcolor='rgba(0,0,0,0)'
-        )
-        
-        fig.update_layout(
-            title=dict(
-                text=title,
-                font=dict(size=24, family='Outfit, Inter, sans-serif', color='#1a2332'),
-                x=0.5,
-                xanchor='center'
-            ),
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)',
-            height=700,
-            margin=dict(l=0, r=0, t=80, b=0),
-            font=dict(family='Inter, sans-serif'),
-            hoverlabel=dict(
-                bgcolor='white',
-                font_size=13,
-                font_family='Inter, sans-serif',
-                bordercolor='#2196f3'
-            )
-        )
-        
-        return fig
-    
-    def create_3d_globe(
-        self,
-        df: pd.DataFrame,
-        metric: str,
-        title: str
-    ) -> go.Figure:
-        """Create interactive 3D globe visualization"""
-        
-        df_clean = df.dropna(subset=['Latitude', 'Longitude', metric])
-        
-        fig = go.Figure(data=go.Scattergeo(
-            lon=df_clean['Longitude'],
-            lat=df_clean['Latitude'],
-            text=df_clean['Country'],
-            mode='markers',
-            marker=dict(
-                size=df_clean[metric] / df_clean[metric].max() * 30 + 5,
-                color=df_clean[metric],
-                colorscale='Viridis',
-                showscale=True,
-                colorbar=dict(
-                    title=metric.replace('_', ' ').title(),
-                    thickness=15,
-                    len=0.7
-                ),
-                line=dict(width=0.5, color='white'),
-                opacity=0.8
-            ),
-            hovertemplate='<b>%{text}</b><br>' +
-                         f'{metric.replace("_", " ").title()}: %{{marker.color:,.2f}}<br>' +
-                         '<extra></extra>'
-        ))
-        
-        fig.update_geos(
-            projection_type='orthographic',
             showcoastlines=True,
-            coastlinecolor='rgba(255,255,255,0.6)',
-            showland=True,
-            landcolor='rgb(40, 40, 40)',
-            showcountries=True,
-            countrycolor='rgba(255,255,255,0.3)',
-            showocean=True,
-            oceancolor='rgb(20, 20, 40)',
-            bgcolor='rgb(10, 10, 20)'
+            coastlinecolor="rgba(0,0,0,0.3)",
+            landcolor="rgb(240, 240, 240)",
         )
-        
+
         fig.update_layout(
-            title=dict(
-                text=title,
-                font=dict(size=24, color='white'),
-                x=0.5,
-                xanchor='center'
-            ),
-            paper_bgcolor='rgb(10, 10, 20)',
-            height=800,
-            margin=dict(l=0, r=0, t=80, b=0),
-            showlegend=False
+            title=dict(text=title, x=0.5),
+            margin=dict(l=0, r=0, t=40, b=0),
         )
-        
+
         return fig
-    
-    def create_comparison_radar(
-        self,
-        df: pd.DataFrame,
-        countries: List[str],
-        metrics: List[str]
-    ) -> go.Figure:
-        """Create radar chart for country comparison"""
-        
-        fig = go.Figure()
-        
-        colors = ['#2196f3', '#f44336', '#4caf50', '#ff9800', '#9c27b0', '#00bcd4']
-        
-        for idx, country in enumerate(countries):
-            country_data = df[df['Country'] == country]
-            
-            if country_data.empty:
-                continue
-            
-            # Normalize values to 0-100 scale
-            values = []
-            for metric in metrics:
-                val = country_data[metric].iloc[0]
-                if pd.notna(val):
-                    # Normalize based on global min-max
-                    min_val = df[metric].min()
-                    max_val = df[metric].max()
-                    normalized = ((val - min_val) / (max_val - min_val)) * 100 if max_val != min_val else 50
-                    values.append(normalized)
-                else:
-                    values.append(0)
-            
-            fig.add_trace(go.Scatterpolar(
-                r=values + [values[0]],  # Close the radar
-                theta=[m.replace('_', ' ').title() for m in metrics] + [metrics[0].replace('_', ' ').title()],
-                fill='toself',
-                name=country,
-                line=dict(color=colors[idx % len(colors)], width=2),
-                fillcolor=colors[idx % len(colors)],
-                opacity=0.3,
-                hovertemplate='<b>%{fullData.name}</b><br>' +
-                             '%{theta}: %{r:.1f}/100<br>' +
-                             '<extra></extra>'
-            ))
-        
-        fig.update_layout(
-            polar=dict(
-                radialaxis=dict(
-                    visible=True,
-                    range=[0, 100],
-                    tickfont=dict(size=11),
-                    gridcolor='rgba(0,0,0,0.1)'
-                ),
-                angularaxis=dict(
-                    tickfont=dict(size=12, family='Inter, sans-serif')
-                ),
-                bgcolor='rgba(255,255,255,0.5)'
-            ),
-            showlegend=True,
-            legend=dict(
-                orientation='h',
-                yanchor='bottom',
-                y=-0.2,
-                xanchor='center',
-                x=0.5,
-                font=dict(size=12)
-            ),
-            height=600,
-            paper_bgcolor='rgba(0,0,0,0)',
-            font=dict(family='Inter, sans-serif'),
-            title=dict(
-                text='Multi-Dimensional Country Comparison',
-                font=dict(size=22, family='Outfit, Inter, sans-serif'),
-                x=0.5,
-                xanchor='center'
-            )
-        )
-        
-        return fig
-    
-    def create_scatter_correlation(
-        self,
-        df: pd.DataFrame,
-        x_metric: str,
-        y_metric: str,
-        color_by: Optional[str] = None,
-        size_by: Optional[str] = None
-    ) -> go.Figure:
-        """Create advanced scatter plot with correlation analysis"""
-        
-        df_clean = df.dropna(subset=[x_metric, y_metric])
-        
-        if color_by and color_by in df_clean.columns:
-            color_data = df_clean[color_by]
-        else:
-            color_data = df_clean['Continent'] if 'Continent' in df_clean.columns else None
-        
-        if size_by and size_by in df_clean.columns:
-            size_data = df_clean[size_by]
-            # Normalize size
-            size_data = (size_data - size_data.min()) / (size_data.max() - size_data.min()) * 50 + 10
-        else:
-            size_data = 15
-        
-        fig = px.scatter(
-            df_clean,
-            x=x_metric,
-            y=y_metric,
-            color=color_by if color_by else 'Continent',
-            size=size_data if isinstance(size_data, pd.Series) else None,
-            hover_name='Country',
-            hover_data={x_metric: ':.2f', y_metric: ':.2f'},
-            color_discrete_sequence=px.colors.qualitative.Set3,
-            template=self.default_template
-        )
-        
-        # Add trendline
-        if len(df_clean) > 2:
-            z = np.polyfit(df_clean[x_metric], df_clean[y_metric], 1)
-            p = np.poly1d(z)
-            x_trend = np.linspace(df_clean[x_metric].min(), df_clean[x_metric].max(), 100)
-            
-            fig.add_trace(go.Scatter(
-                x=x_trend,
-                y=p(x_trend),
-                mode='lines',
-                name='Trend',
-                line=dict(color='red', width=2, dash='dash'),
-                hovertemplate='Trendline<extra></extra>'
-            ))
-            
-            # Calculate correlation
-            correlation = df_clean[x_metric].corr(df_clean[y_metric])
-            
-            fig.add_annotation(
-                text=f'Correlation: {correlation:.3f}',
-                xref='paper',
-                yref='paper',
-                x=0.95,
-                y=0.05,
-                showarrow=False,
-                bgcolor='rgba(255,255,255,0.8)',
-                bordercolor='#2196f3',
-                borderwidth=2,
-                borderpad=10,
-                font=dict(size=14, family='Inter, sans-serif')
-            )
-        
-        fig.update_layout(
-            title=dict(
-                text=f'{y_metric.replace("_", " ").title()} vs {x_metric.replace("_", " ").title()}',
-                font=dict(size=22, family='Outfit, Inter, sans-serif'),
-                x=0.5,
-                xanchor='center'
-            ),
-            xaxis_title=x_metric.replace('_', ' ').title(),
-            yaxis_title=y_metric.replace('_', ' ').title(),
-            height=600,
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='white',
-            font=dict(family='Inter, sans-serif'),
-            hovermode='closest'
-        )
-        
-        fig.update_xaxes(showgrid=True, gridcolor='rgba(0,0,0,0.05)')
-        fig.update_yaxes(showgrid=True, gridcolor='rgba(0,0,0,0.05)')
-        
-        return fig
-    
+
+    # --------------------------------------------------------
+    # 2️⃣ Regional Bar Chart (Comparison)
+    # --------------------------------------------------------
     def create_regional_bar_chart(
         self,
         df: pd.DataFrame,
         metric: str,
-        aggregation: str = 'mean'
+        agg: str = "mean",
     ) -> go.Figure:
-        """Create regional comparison bar chart"""
-        
-        if 'Continent' not in df.columns:
-            return go.Figure()
-        
-        # Group by continent
-        if aggregation == 'mean':
-            regional_data = df.groupby('Continent')[metric].mean().sort_values(ascending=False)
-        elif aggregation == 'sum':
-            regional_data = df.groupby('Continent')[metric].sum().sort_values(ascending=False)
-        elif aggregation == 'median':
-            regional_data = df.groupby('Continent')[metric].median().sort_values(ascending=False)
-        else:
-            regional_data = df.groupby('Continent')[metric].mean().sort_values(ascending=False)
-        
-        colors = ['#2196f3', '#4caf50', '#ff9800', '#f44336', '#9c27b0', '#00bcd4', '#ffc107']
-        
-        fig = go.Figure(data=[
-            go.Bar(
-                x=regional_data.index,
-                y=regional_data.values,
-                marker=dict(
-                    color=colors[:len(regional_data)],
-                    line=dict(color='white', width=2)
-                ),
-                text=regional_data.values,
-                texttemplate='%{text:.2f}',
-                textposition='outside',
-                hovertemplate='<b>%{x}</b><br>' +
-                             f'{metric.replace("_", " ").title()}: %{{y:,.2f}}<br>' +
-                             '<extra></extra>'
-            )
-        ])
-        
-        fig.update_layout(
-            title=dict(
-                text=f'{metric.replace("_", " ").title()} by Region ({aggregation.title()})',
-                font=dict(size=22, family='Outfit, Inter, sans-serif'),
-                x=0.5,
-                xanchor='center'
-            ),
-            xaxis_title='Region',
-            yaxis_title=metric.replace('_', ' ').title(),
-            height=500,
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='white',
-            font=dict(family='Inter, sans-serif'),
-            showlegend=False
+
+        label = self._label(metric)
+
+        if "Continent" not in df.columns:
+            raise ValueError("Dataset missing 'Continent' column")
+
+        df_clean = df.dropna(subset=["Continent", metric])
+        df_region = df_clean.groupby("Continent", as_index=False)[metric].agg(agg)
+        df_region = df_region.sort_values(metric, ascending=False)
+
+        fig = px.bar(
+            df_region,
+            x="Continent",
+            y=metric,
+            title=f"{label} by Continent ({agg.title()})",
+            text_auto=".2s",
+            labels={"Continent": "Continent", metric: label},
         )
-        
-        fig.update_xaxes(showgrid=False)
-        fig.update_yaxes(showgrid=True, gridcolor='rgba(0,0,0,0.05)')
-        
-        return fig
-    
-    def create_sunburst_chart(
-        self,
-        df: pd.DataFrame,
-        metric: str
-    ) -> go.Figure:
-        """Create hierarchical sunburst chart"""
-        
-        df_clean = df.dropna(subset=['Continent', metric])
-        
-        # Create hierarchy: Continent -> Development Level -> Country
-        if 'Development_Level' in df_clean.columns:
-            fig = px.sunburst(
-                df_clean,
-                path=['Continent', 'Development_Level', 'Country'],
-                values=metric,
-                color=metric,
-                color_continuous_scale='RdYlGn',
-                template=self.default_template
-            )
-        else:
-            fig = px.sunburst(
-                df_clean,
-                path=['Continent', 'Country'],
-                values=metric,
-                color=metric,
-                color_continuous_scale='Viridis',
-                template=self.default_template
-            )
-        
-        fig.update_layout(
-            title=dict(
-                text=f'{metric.replace("_", " ").title()} Distribution',
-                font=dict(size=22, family='Outfit, Inter, sans-serif'),
-                x=0.5,
-                xanchor='center'
-            ),
-            height=700,
-            paper_bgcolor='rgba(0,0,0,0)',
-            font=dict(family='Inter, sans-serif')
+
+        hover_tmpl = (
+            "<b>%{x}</b><br>"
+            + label
+            + ": %{y:,.2f}<extra></extra>"
         )
-        
+
+        fig.update_traces(hovertemplate=hover_tmpl)
+
+        fig.update_layout(
+            xaxis_title="Continent",
+            yaxis_title=label,
+            margin=dict(l=40, r=20, t=60, b=40),
+        )
+
         return fig
-    
+
+    # --------------------------------------------------------
+    # 3️⃣ Sunburst Chart (Hierarchy)
+    # --------------------------------------------------------
+    def create_sunburst_chart(self, df: pd.DataFrame, metric: str) -> go.Figure:
+        label = self._label(metric)
+
+        if "Continent" not in df.columns:
+            raise ValueError("Dataset missing 'Continent' column")
+
+        df_clean = df.dropna(subset=["Continent", "Country", metric])
+
+        fig = px.sunburst(
+            df_clean,
+            path=["Continent", "Country"],
+            values=metric,
+            color=metric,
+            color_continuous_scale="Viridis",
+            hover_data={metric: ":,.2f"},
+        )
+
+        fig.update_layout(
+            title=f"{label} by Continent → Country",
+            margin=dict(l=0, r=0, t=60, b=0),
+        )
+
+        return fig
+
+    # --------------------------------------------------------
+    # 4️⃣ Correlation Matrix (OVERVIEW)
+    # --------------------------------------------------------
     def create_heatmap_correlation(
         self,
         df: pd.DataFrame,
-        metrics: List[str]
+        metrics: List[str],
     ) -> go.Figure:
-        """Create correlation heatmap for multiple metrics"""
+        df_corr = df[metrics].dropna().corr()
+
+        hover_tmpl = (
+            "<b>%{x}</b> vs <b>%{y}</b><br>"
+            "r = %{z:.2f}<extra></extra>"
+        )
+
+        fig = go.Figure(
+            data=go.Heatmap(
+                z=df_corr.values,
+                x=df_corr.columns,
+                y=df_corr.columns,
+                colorscale="RdBu_r",
+                zmin=-1,
+                zmax=1,
+                colorbar=dict(title="Correlation"),
+                hovertemplate=hover_tmpl,
+            )
+        )
+
+        fig.update_layout(
+            title="Correlation Matrix",
+            xaxis=dict(tickangle=45, automargin=True),
+            yaxis=dict(automargin=True, scaleanchor="x", scaleratio=1),
+            margin=dict(l=70, r=30, t=70, b=60),
+            height=440,
+        )
+
+        return fig
+
+    def create_3d_globe(
+            self,
+            df: pd.DataFrame,
+            metric: str,
+            title: str,
+            color_scheme: str = "Viridis",
+    ) -> go.Figure:
+        """
+        Optional globe-style view using Scattergeo with orthographic projection.
+
+        - If Latitude/Longitude columns exist, uses them.
+        - If not, gracefully falls back to the 2D choropleth (no crash).
+        """
+
+        label = self._label(metric)
+
+        # If we don't have coordinates, fall back to 2D map
+        if "Latitude" not in df.columns or "Longitude" not in df.columns:
+            fallback_title = f"{title} (2D map – no coordinates available)"
+            return self.create_choropleth_map(
+                df=df,
+                metric=metric,
+                title=fallback_title,
+                color_scheme=color_scheme,
+                projection="natural earth",
+            )
+
+        df_clean = df.dropna(subset=["Latitude", "Longitude", metric])
+
+        if df_clean.empty:
+            # No valid rows, also fall back gracefully
+            fallback_title = f"{title} (2D map – no valid coordinates)"
+            return self.create_choropleth_map(
+                df=df,
+                metric=metric,
+                title=fallback_title,
+                color_scheme=color_scheme,
+                projection="natural earth",
+            )
+
+        # Simple size scaling based on metric
+        values = df_clean[metric].astype(float)
+        v_min = values.min()
+        v_max = values.max()
+        # Avoid division by zero
+        if v_max > v_min:
+            sizes = 6 + 14 * (values - v_min) / (v_max - v_min)
+        else:
+            sizes = [10.0] * len(values)
+
+        hover_tmpl = (
+                "<b>%{text}</b><br>"
+                + label
+                + ": %{marker.color:,.2f}<extra></extra>"
+        )
+
+        fig = go.Figure(
+            data=go.Scattergeo(
+                lon=df_clean["Longitude"],
+                lat=df_clean["Latitude"],
+                text=df_clean.get("Country", df_clean.index),
+                mode="markers",
+                marker=dict(
+                    size=sizes,
+                    color=values,
+                    colorscale=color_scheme,
+                    colorbar=dict(title=label),
+                    sizemode="area",
+                    opacity=0.85,
+                ),
+                hovertemplate=hover_tmpl,
+            )
+        )
+
+        fig.update_geos(
+            projection_type="orthographic",
+            showcoastlines=True,
+            showcountries=True,
+            landcolor="rgb(240, 240, 240)",
+            oceancolor="rgb(225, 240, 255)",
+            showocean=True,
+        )
+
+        fig.update_layout(
+            title=dict(text=title + " (Globe View)", x=0.5),
+            margin=dict(l=0, r=0, t=40, b=0),
+        )
+
+        return fig
+
+    # --------------------------------------------------------
+    # 🔄 Country Comparison – Bar Chart
+    # --------------------------------------------------------
+    def create_comparison_bar(
+        self,
+        df: pd.DataFrame,
+        countries,
+        metric: str,
+    ) -> go.Figure:
+        """
+        Bar chart comparing a single metric across multiple countries.
         
-        # Calculate correlation matrix
-        corr_matrix = df[metrics].corr()
+        - countries: list of country names (or single string)
+        - metric: single metric column name
+        """
         
-        # Create heatmap
-        fig = go.Figure(data=go.Heatmap(
-            z=corr_matrix.values,
-            x=[m.replace('_', ' ').title() for m in corr_matrix.columns],
-            y=[m.replace('_', ' ').title() for m in corr_matrix.index],
-            colorscale='RdBu',
-            zmid=0,
-            text=corr_matrix.values,
-            texttemplate='%{text:.2f}',
-            textfont=dict(size=10),
-            colorbar=dict(
-                title='Correlation',
-                thickness=15,
-                len=0.7
-            ),
-            hovertemplate='%{x} vs %{y}<br>Correlation: %{z:.3f}<extra></extra>'
-        ))
+        # Normalize inputs
+        if countries is None:
+            countries = []
+        if isinstance(countries, str):
+            countries = [countries]
+        countries = [c for c in countries if c]
+        
+        if not countries or not metric:
+            return go.Figure(
+                layout=dict(
+                    title="Select at least 2 countries and 1 metric to compare",
+                    margin=dict(l=40, r=20, t=60, b=40),
+                )
+            )
+        
+        # Check if metric exists
+        if metric not in df.columns:
+            return go.Figure(
+                layout=dict(
+                    title=f"Metric '{metric}' not found in data",
+                    margin=dict(l=40, r=20, t=60, b=40),
+                )
+            )
+        
+        # Filter data
+        dff = df[df["Country"].isin(countries)][["Country", metric]].dropna()
+        
+        if dff.empty:
+            return go.Figure(
+                layout=dict(
+                    title="No data available for selected countries",
+                    margin=dict(l=40, r=20, t=60, b=40),
+                )
+            )
+        
+        # Sort by metric value for better readability
+        dff = dff.sort_values(metric, ascending=True)
+        
+        fig = go.Figure(
+            data=[
+                go.Bar(
+                    x=dff[metric],
+                    y=dff["Country"],
+                    orientation="h",
+                    text=dff[metric].apply(lambda x: f"{x:,.2f}"),
+                    textposition="outside",
+                    marker=dict(
+                        color=dff[metric],
+                        colorscale="Viridis",
+                        showscale=True,
+                        colorbar=dict(title=self._label(metric)),
+                    ),
+                    hovertemplate="<b>%{y}</b><br>" + self._label(metric) + ": %{x:,.2f}<extra></extra>",
+                )
+            ]
+        )
         
         fig.update_layout(
-            title=dict(
-                text='Metrics Correlation Matrix',
-                font=dict(size=22, family='Outfit, Inter, sans-serif'),
-                x=0.5,
-                xanchor='center'
-            ),
-            height=600,
-            paper_bgcolor='rgba(0,0,0,0)',
-            font=dict(family='Inter, sans-serif'),
-            xaxis=dict(side='bottom'),
-            yaxis=dict(side='left')
+            title=f"Country Comparison: {self._label(metric)}",
+            xaxis_title=self._label(metric),
+            yaxis_title="Country",
+            margin=dict(l=150, r=80, t=60, b=60),
+            height=max(300, len(dff) * 40 + 100),
+            showlegend=False,
         )
         
         return fig
-    
-    def create_animated_timeline(
+
+    # --------------------------------------------------------
+    # 🔄 Country Comparison – Radar Chart
+    # --------------------------------------------------------
+    def create_comparison_radar(
+        self,
+        df: pd.DataFrame,
+        countries,
+        metrics,
+    ) -> go.Figure:
+        """
+        Radar chart comparing multiple metrics for selected countries.
+
+        - countries: list of country names (or single string)
+        - metrics: list of metric column names (or single string)
+
+        If metrics is a single metric, we will still build a valid (but
+        slightly degenerate) radar chart.
+        """
+
+        # Normalize inputs to lists
+        if countries is None:
+            countries = []
+        if isinstance(countries, str):
+            countries = [countries]
+
+        if metrics is None:
+            metrics = []
+        if isinstance(metrics, str):
+            metrics = [metrics]
+
+        # Remove empties
+        countries = [c for c in countries if c]
+        metrics = [m for m in metrics if m]
+
+        # Fallback: empty figure if nothing selected
+        if not countries or not metrics:
+            return go.Figure(
+                layout=dict(
+                    title="Select at least one country and one metric to compare",
+                    margin=dict(l=40, r=20, t=60, b=40),
+                )
+            )
+
+        # Filter data
+        cols_needed = ["Country"] + metrics
+        for c in cols_needed:
+            if c not in df.columns:
+                raise ValueError(f"Column '{c}' not found in data.")
+
+        dff = df[df["Country"].isin(countries)][cols_needed].dropna()
+
+        if dff.empty:
+            return go.Figure(
+                layout=dict(
+                    title="No data available for selected countries / metrics",
+                    margin=dict(l=40, r=20, t=60, b=40),
+                )
+            )
+
+        # Melt to long format: Country, Metric, Value
+        long_df = dff.melt(
+            id_vars="Country",
+            value_vars=metrics,
+            var_name="Metric",
+            value_name="Value",
+        )
+
+        # Optional: normalize each metric to [0, 1] for fair comparison
+        # so that metrics on very different scales don't dominate.
+        norm_df = long_df.copy()
+        norm_df["NormValue"] = 0.0
+
+        for m in metrics:
+            mask = norm_df["Metric"] == m
+            vals = norm_df.loc[mask, "Value"]
+            v_min = vals.min()
+            v_max = vals.max()
+            if v_max > v_min:
+                norm_df.loc[mask, "NormValue"] = (vals - v_min) / (v_max - v_min)
+            else:
+                # All same value → set to 0.5
+                norm_df.loc[mask, "NormValue"] = 0.5
+
+        # Precompute friendly labels for the angular axis
+        metric_labels = [self._label(m) for m in metrics]
+
+        # Build radar (polar) chart
+        fig = go.Figure()
+
+        for country in countries:
+            c_data = norm_df[norm_df["Country"] == country]
+
+            # Ensure consistent order of metrics around the circle
+            c_data = c_data.set_index("Metric").reindex(metrics).reset_index()
+
+            theta = metric_labels.copy()
+            r = c_data["NormValue"].tolist()
+            raw_vals = c_data["Value"].tolist()
+
+            # Close the loop by repeating first point at the end
+            if len(theta) > 0:
+                theta.append(theta[0])
+                r.append(r[0])
+                raw_vals.append(raw_vals[0])
+
+            customdata = list(zip(raw_vals, r))
+
+            fig.add_trace(
+                go.Scatterpolar(
+                    r=r,
+                    theta=theta,
+                    name=country,
+                    mode="lines+markers",
+                    fill="toself",
+                    opacity=0.28,
+                    line=dict(shape="spline", smoothing=1.1, width=3),
+                    marker=dict(size=7, symbol="circle"),
+                    customdata=customdata,
+                    hovertemplate=(
+                        "<b>%{fullData.name}</b><br>"
+                        "%{theta}<br>"
+                        "Value: %{customdata[0]:,.2f}<br>"
+                        "Normalized: %{customdata[1]:.0%}<extra></extra>"
+                    ),
+                )
+            )
+
+        fig.update_layout(
+            title=f"Country Comparison (Radar • {len(metrics)} metrics)",
+            polar=dict(
+                radialaxis=dict(
+                    visible=True,
+                    range=[0, 1],
+                    tickvals=[0, 0.25, 0.5, 0.75, 1.0],
+                    tickformat=".0%",
+                    gridcolor="rgba(0,0,0,0.10)",
+                ),
+                angularaxis=dict(
+                    direction="clockwise",
+                    rotation=90,
+                    gridcolor="rgba(0,0,0,0.08)",
+                ),
+            ),
+            legend=dict(orientation="h", yanchor="bottom", y=-0.25, xanchor="center", x=0.5, itemclick="toggleothers"),
+            margin=dict(l=60, r=60, t=60, b=95),
+            dragmode="orbit",
+            hovermode="closest",
+        )
+
+        return fig
+
+    # --------------------------------------------------------
+    # 5️⃣ Detailed Scatter (DETAILS ON DEMAND)
+    # --------------------------------------------------------
+    # def create_scatter_correlation(
+    #     self,
+    #     df: pd.DataFrame,
+    #     x_metric: str,
+    #     y_metric: str,
+    #     color_by: Optional[str] = None,
+    # ) -> go.Figure:
+    #
+    #     label_x = self._label(x_metric)
+    #     label_y = self._label(y_metric)
+    #
+    #     cols = [c for c in [x_metric, y_metric, "Country", color_by] if c and c in df.columns]
+    #     dff = df[cols].dropna()
+    #
+    #     fig = px.scatter(
+    #         dff,
+    #         x=x_metric,
+    #         y=y_metric,
+    #         color=color_by if color_by and color_by in dff.columns else None,
+    #         hover_name="Country" if "Country" in dff.columns else None,
+    #         labels={x_metric: label_x, y_metric: label_y},
+    #     )
+    #
+    #     fig.update_layout(
+    #         title=f"{label_y} vs {label_x}",
+    #         xaxis_title=label_x,
+    #         yaxis_title=label_y,
+    #         margin=dict(l=50, r=20, t=50, b=50),
+    #     )
+
+        # Let Plotly handle %{x} %{y
+
+    def create_scatter_correlation(
+            self,
+            df: pd.DataFrame,
+            x_metric: str,
+            y_metric: str,
+            color_by: Optional[str] = None,
+            facet_by: Optional[str] = None,
+    ) -> go.Figure:
+
+        label_x = self._label(x_metric)
+        label_y = self._label(y_metric)
+
+        if isinstance(color_by, str) and color_by.strip().lower() == "none":
+            color_by = None
+        if isinstance(facet_by, str) and facet_by.strip().lower() == "none":
+            facet_by = None
+
+        cols = [c for c in [x_metric, y_metric, "Country", color_by, facet_by] if c and c in df.columns]
+        # Plotly Express (via narwhals) requires unique column names
+        cols = list(dict.fromkeys(cols))
+        dff = df[cols].dropna()
+
+        fig = px.scatter(
+            dff,
+            x=x_metric,
+            y=y_metric,
+            color=color_by if color_by and color_by in dff.columns else None,
+            facet_col=facet_by if facet_by and facet_by in dff.columns else None,
+            facet_col_wrap=2,
+            hover_name="Country" if "Country" in dff.columns else None,
+            labels={x_metric: label_x, y_metric: label_y},
+        )
+
+        # Compute Pearson correlation for the title
+        try:
+            r = dff[x_metric].corr(dff[y_metric])
+            corr_text = f" (r = {r:.2f})"
+        except Exception:
+            corr_text = ""
+
+        fig.update_layout(
+            title=f"{label_y} vs {label_x}{corr_text}",
+            xaxis_title=label_x,
+            yaxis_title=label_y,
+            margin=dict(l=50, r=20, t=50, b=50),
+        )
+
+        # Make facet annotations smaller/cleaner
+        fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
+
+        return fig
+
+
+    # --------------------------------------------------------
+    # 6️⃣ Distribution (Statistical Value Idioms)
+    # --------------------------------------------------------
+    def create_distribution_chart(
         self,
         df: pd.DataFrame,
         metric: str,
-        time_column: str
+        idiom: str = "hist",
+        bins: int = 20,
+        show_points: bool = False,
+        group_by: str = "Continent",
+        selected_country: Optional[str] = None,
     ) -> go.Figure:
-        """Create animated timeline visualization (if time data available)"""
-        
-        # This is a placeholder for future time-series data
-        # For now, create a static visualization
-        
-        return self.create_choropleth_map(df, metric, f'{metric.replace("_", " ").title()} Over Time')
+        """Create a distribution view for a single metric.
+
+        - hist: histogram of values (optionally faceted by group_by)
+        - box: box plot by group_by
+        - violin: violin plot by group_by (density + summary)
+        """
+
+        label = self._label(metric)
+        dff = df.dropna(subset=[metric])
+
+        if dff.empty:
+            return go.Figure(layout=dict(title="No data available"))
+
+        # Prefer grouping when available
+        if group_by not in dff.columns:
+            group_by = None
+
+        if idiom == "hist":
+            fig = px.histogram(
+                dff,
+                x=metric,
+                nbins=bins,
+                color=group_by if group_by else None,
+                opacity=0.85,
+                hover_data={"Country": True} if "Country" in dff.columns else None,
+                labels={metric: label},
+                title=f"Distribution of {label}"
+                      + (f" by {group_by}" if group_by else ""),
+            )
+            fig.update_layout(bargap=0.05)
+
+        elif idiom == "box":
+            fig = px.box(
+                dff,
+                x=group_by if group_by else None,
+                y=metric,
+                points="all" if show_points else False,
+                hover_name="Country" if "Country" in dff.columns else None,
+                labels={metric: label, group_by: group_by} if group_by else {metric: label},
+                title=f"Box plot of {label}" + (f" by {group_by}" if group_by else ""),
+            )
+
+        else:  # violin
+            fig = px.violin(
+                dff,
+                x=group_by if group_by else None,
+                y=metric,
+                box=True,
+                points="all" if show_points else False,
+                hover_name="Country" if "Country" in dff.columns else None,
+                labels={metric: label, group_by: group_by} if group_by else {metric: label},
+                title=f"Violin plot of {label}" + (f" by {group_by}" if group_by else ""),
+            )
+
+        # Details-on-demand: annotate selected country value
+        if selected_country and "Country" in dff.columns and selected_country in set(dff["Country"]):
+            row = dff.loc[dff["Country"] == selected_country].iloc[0]
+            val = row[metric]
+            fig.add_vline(
+                x=val,
+                line_width=2,
+                line_dash="dash",
+                annotation_text=selected_country,
+                annotation_position="top",
+            )
+
+        fig.update_layout(margin=dict(l=50, r=20, t=60, b=50))
+        return fig
+
+
+    # --------------------------------------------------------
+    # 7️⃣ Ranking Bar (Top/Bottom)
+    # --------------------------------------------------------
+    def create_ranking_bar(
+        self,
+        df: pd.DataFrame,
+        metric: str,
+        mode: str = "top",
+        n: int = 12,
+        selected_country: Optional[str] = None,
+    ) -> go.Figure:
+        """Create a compact ranking bar chart.
+
+        mode: 'top' or 'bottom'
+        """
+
+        label = self._label(metric)
+        dff = df.dropna(subset=["Country", metric]).copy()
+        if dff.empty:
+            return go.Figure(layout=dict(title="No data available"))
+
+        dff = dff.sort_values(metric, ascending=(mode == "bottom")).head(int(n))
+
+        # Highlight selected country if present
+        colors = ["rgba(33,150,243,0.85)"] * len(dff)
+        if selected_country and selected_country in set(dff["Country"]):
+            countries_order = dff["Country"].tolist()
+            try:
+                idx = countries_order.index(selected_country)
+                colors[idx] = "rgba(255,107,107,0.95)"
+            except ValueError:
+                pass
+
+        fig = go.Figure(
+            data=
+            [
+                go.Bar(
+                    x=dff[metric],
+                    y=dff["Country"],
+                    orientation="h",
+                    marker=dict(color=colors),
+                    hovertemplate="<b>%{y}</b><br>" + label + ": %{x:,.2f}<extra></extra>",
+                )
+            ]
+        )
+
+        title = f"{label} — {'Top' if mode == 'top' else 'Bottom'} {len(dff)}"
+        fig.update_layout(
+            title=dict(text=title, x=0.01, xanchor="left"),
+            margin=dict(l=10, r=10, t=50, b=10),
+            height=300,
+            yaxis=dict(autorange="reversed"),
+        )
+        fig.update_xaxes(showgrid=True, gridcolor="rgba(0,0,0,0.06)")
+        fig.update_yaxes(showgrid=False)
+        return fig
+
+
+    # --------------------------------------------------------
+    # 8️⃣ Overview Scatter (Metric vs GDP per capita)
+    # --------------------------------------------------------
+    def create_metric_vs_reference_scatter(
+        self,
+        df: pd.DataFrame,
+        metric: str,
+        reference_metric: str,
+        color_by: str = "Continent",
+        selected_country: Optional[str] = None,
+    ) -> go.Figure:
+        x_metric = reference_metric
+        y_metric = metric
+
+        if x_metric not in df.columns or y_metric not in df.columns:
+            return go.Figure(layout=dict(title="Required columns not available"))
+
+        cols = ["Country", x_metric, y_metric]
+        if color_by in df.columns:
+            cols.append(color_by)
+
+        dff = df[cols].dropna()
+        if dff.empty:
+            return go.Figure(layout=dict(title="No data available"))
+
+        use_log_x = x_metric in {"Real_GDP_per_Capita_USD", "Total_Population", "internet_users_total"}
+
+        fig = px.scatter(
+            dff,
+            x=x_metric,
+            y=y_metric,
+            color=color_by if color_by in dff.columns else None,
+            hover_name="Country",
+            labels={x_metric: self._label(x_metric), y_metric: self._label(y_metric)},
+            log_x=use_log_x,
+            opacity=0.75,
+            render_mode="webgl",
+        )
+
+        fig.update_traces(
+            marker=dict(size=7, line=dict(width=0)),
+            hovertemplate=(
+                "<b>%{hovertext}</b><br>"
+                + self._label(x_metric)
+                + ": %{x:,.0f}<br>"
+                + self._label(y_metric)
+                + ": %{y:,.2f}<extra></extra>"
+            ),
+        )
+
+        # Emphasize selected country
+        if selected_country and selected_country in set(dff["Country"]):
+            row = dff[dff["Country"] == selected_country].iloc[0]
+            fig.add_trace(
+                go.Scatter(
+                    x=[row[x_metric]],
+                    y=[row[y_metric]],
+                    mode="markers",
+                    name=selected_country,
+                    marker=dict(size=16, color="rgba(255,107,107,1)", line=dict(width=2, color="white")),
+                    hovertemplate=f"<b>{selected_country}</b><br>{self._label(x_metric)}: %{{x:,.0f}}<br>{self._label(y_metric)}: %{{y:,.2f}}<extra></extra>",
+                )
+            )
+
+        # Less clutter: move legend to the right, shorten axis titles
+        fig.update_layout(
+            title=dict(text=f"Relationship: {self._label(y_metric)} vs {self._label(x_metric)}" + (" (log x)" if use_log_x else ""), x=0.01, xanchor="left"),
+            margin=dict(l=20, r=10, t=60, b=30),
+            height=300,
+            legend=dict(
+                orientation="v",
+                x=0.99,
+                y=1,
+                xanchor="right",
+                yanchor="top",
+                bgcolor="rgba(0,0,0,0)",
+            ),
+        )
+
+        # Tick formatting helps when log scale is on
+        if use_log_x:
+            fig.update_xaxes(tickformat="~s", nticks=6)
+        else:
+            fig.update_xaxes(nticks=6)
+
+        fig.update_yaxes(nticks=6, tickformat="~s")
+
+        fig.update_xaxes(title_text=self._label(x_metric))
+        fig.update_yaxes(title_text=self._label(y_metric))
+        return fig
