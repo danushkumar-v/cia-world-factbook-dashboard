@@ -17,6 +17,7 @@ class VisualizationFactory:
 
         Dash CSS variables won't automatically restyle Plotly SVG/canvas.
         This keeps charts visually consistent with the app theme.
+        Also configures high-resolution export settings for publication-quality images.
         """
 
         is_dark = (theme or "light") == "dark"
@@ -25,13 +26,25 @@ class VisualizationFactory:
             template="plotly_dark" if is_dark else "plotly_white",
             paper_bgcolor="rgba(0,0,0,0)",
             plot_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="rgba(255,255,255,0.90)" if is_dark else "rgba(17,24,39,0.92)"),
+            font=dict(
+                color="rgba(255,255,255,0.90)" if is_dark else "rgba(17,24,39,0.92)",
+                size=20,  # Much larger font for export quality
+                family="Inter, Arial, sans-serif"
+            ),
             hoverlabel=dict(
                 bgcolor="rgba(17,24,39,0.95)" if is_dark else "rgba(255,255,255,0.95)",
                 bordercolor="rgba(255,255,255,0.18)" if is_dark else "rgba(17,24,39,0.18)",
-                font=dict(color="rgba(255,255,255,0.92)" if is_dark else "rgba(17,24,39,0.92)"),
+                font=dict(color="rgba(255,255,255,0.92)" if is_dark else "rgba(17,24,39,0.92)", size=18),
             ),
             transition=dict(duration=350, easing="cubic-in-out"),
+            # High-resolution export settings
+            title=dict(font=dict(size=28)),  # Much larger title for exports
+            legend=dict(
+                font=dict(size=20),
+                bgcolor="rgba(255,255,255,0.9)" if not is_dark else "rgba(0,0,0,0.7)",
+                bordercolor="rgba(0,0,0,0.2)",
+                borderwidth=2
+            ),
         )
 
         # Geo charts need a little extra love
@@ -50,14 +63,18 @@ class VisualizationFactory:
         fig.update_xaxes(
             showgrid=True,
             gridcolor=grid_color,
-            tickfont=dict(color=axis_color),
+            tickfont=dict(color=axis_color, size=18),
+            title_font=dict(size=22),
             automargin=True,
+            linewidth=3,  # Thicker axis lines for better export quality
         )
         fig.update_yaxes(
             showgrid=True,
             gridcolor=grid_color,
-            tickfont=dict(color=axis_color),
+            tickfont=dict(color=axis_color, size=18),
+            title_font=dict(size=22),
             automargin=True,
+            linewidth=3,  # Thicker axis lines for better export quality
         )
 
         # Preserve user interactions across updates when possible
@@ -115,7 +132,13 @@ class VisualizationFactory:
                 colorscale=color_scheme,
                 autocolorscale=False,
                 marker_line_color="white",
-                colorbar=dict(title=label),
+                marker_line_width=2.5,  # Thicker borders for better visibility in exports
+                colorbar=dict(
+                    title=dict(text=label, font=dict(size=22)),
+                    thickness=25,
+                    len=0.7,
+                    tickfont=dict(size=18)
+                ),
                 hovertemplate=hover_tmpl,
             )
         )
@@ -126,11 +149,19 @@ class VisualizationFactory:
             showcoastlines=True,
             coastlinecolor="rgba(0,0,0,0.3)",
             landcolor="rgb(240, 240, 240)",
+            coastlinewidth=3,  # Thicker lines for high-res exports
+            countrywidth=2,  # Better border visibility
         )
 
         fig.update_layout(
-            title=dict(text=title, x=0.5),
+            title=dict(text=title, x=0.5, font=dict(size=28)),
             margin=dict(l=0, r=0, t=40, b=0),
+            coloraxis_colorbar=dict(
+                thickness=25,  # Wider colorbar for better visibility
+                len=0.7,
+                title=dict(font=dict(size=22)),
+                tickfont=dict(size=18)
+            )
         )
 
         return fig
@@ -169,12 +200,19 @@ class VisualizationFactory:
             + ": %{y:,.2f}<extra></extra>"
         )
 
-        fig.update_traces(hovertemplate=hover_tmpl)
+        fig.update_traces(
+            hovertemplate=hover_tmpl,
+            marker_line_width=2,  # Border for better visibility
+            marker_line_color='rgba(0,0,0,0.3)',
+            textfont_size=18
+        )
 
         fig.update_layout(
             xaxis_title="Continent",
             yaxis_title=label,
             margin=dict(l=40, r=20, t=60, b=40),
+            font=dict(size=18),
+            title=dict(font=dict(size=24))
         )
 
         return fig
@@ -200,9 +238,12 @@ class VisualizationFactory:
         )
 
         fig.update_layout(
-            title=f"{label} by Continent → Country",
+            title=dict(text=f"{label} by Continent → Country", font=dict(size=28)),
             margin=dict(l=0, r=0, t=60, b=0),
+            font=dict(size=20)
         )
+        
+        fig.update_traces(marker=dict(line=dict(width=2, color='white')))
 
         return fig
 
@@ -229,16 +270,22 @@ class VisualizationFactory:
                 colorscale="RdBu_r",
                 zmin=-1,
                 zmax=1,
-                colorbar=dict(title="Correlation"),
+                colorbar=dict(
+                    title=dict(text="Correlation", font=dict(size=28)),
+                    thickness=30,
+                    len=0.7,
+                    tickfont=dict(size=22)
+                ),
                 hovertemplate=hover_tmpl,
             )
         )
 
         fig.update_layout(
-            title="Correlation Matrix",
-            xaxis=dict(tickangle=45, automargin=True),
-            yaxis=dict(automargin=True, scaleanchor="x", scaleratio=1),
-            margin=dict(l=70, r=30, t=70, b=60),
+            title=dict(text="Correlation Matrix", font=dict(size=32, family="Inter, Arial, sans-serif")),
+            xaxis=dict(tickangle=45, automargin=True, tickfont=dict(size=20, family="Inter, Arial, sans-serif")),
+            yaxis=dict(automargin=True, scaleanchor="x", scaleratio=1, tickfont=dict(size=20, family="Inter, Arial, sans-serif")),
+            margin=dict(l=100, r=50, t=90, b=100),
+            font=dict(size=20),
             height=440,
         )
 
@@ -310,9 +357,15 @@ class VisualizationFactory:
                     size=sizes,
                     color=values,
                     colorscale=color_scheme,
-                    colorbar=dict(title=label),
+                    colorbar=dict(
+                        title=dict(text=label, font=dict(size=26)),
+                        thickness=30,
+                        len=0.7,
+                        tickfont=dict(size=22)
+                    ),
                     sizemode="area",
                     opacity=0.85,
+                    line=dict(width=2, color='white'),
                 ),
                 hovertemplate=hover_tmpl,
             )
@@ -325,10 +378,13 @@ class VisualizationFactory:
             landcolor="rgb(240, 240, 240)",
             oceancolor="rgb(225, 240, 255)",
             showocean=True,
+            coastlinewidth=2,
+            countrywidth=1,
         )
 
         fig.update_layout(
-            title=dict(text=title + " (Globe View)", x=0.5),
+            title=dict(text=title + " (Globe View)", x=0.5, font=dict(size=16)),
+            font=dict(size=12),
             margin=dict(l=0, r=0, t=40, b=0),
         )
 
@@ -396,11 +452,18 @@ class VisualizationFactory:
                     orientation="h",
                     text=dff[metric].apply(lambda x: f"{x:,.2f}"),
                     textposition="outside",
+                    textfont=dict(size=18),
                     marker=dict(
                         color=dff[metric],
                         colorscale="Viridis",
                         showscale=True,
-                        colorbar=dict(title=self._label(metric)),
+                        colorbar=dict(
+                            title=dict(text=self._label(metric), font=dict(size=22)),
+                            thickness=25,
+                            len=0.7,
+                            tickfont=dict(size=18)
+                        ),
+                        line=dict(width=2, color='rgba(0,0,0,0.2)'),
                     ),
                     hovertemplate="<b>%{y}</b><br>" + self._label(metric) + ": %{x:,.2f}<extra></extra>",
                 )
@@ -532,9 +595,9 @@ class VisualizationFactory:
                     name=country,
                     mode="lines+markers",
                     fill="toself",
-                    opacity=0.28,
-                    line=dict(shape="spline", smoothing=1.1, width=3),
-                    marker=dict(size=7, symbol="circle"),
+                    opacity=0.35,
+                    line=dict(shape="spline", smoothing=1.1, width=5),
+                    marker=dict(size=16, symbol="circle", line=dict(width=3, color='white')),
                     customdata=customdata,
                     hovertemplate=(
                         "<b>%{fullData.name}</b><br>"
@@ -546,7 +609,7 @@ class VisualizationFactory:
             )
 
         fig.update_layout(
-            title=f"Country Comparison (Radar • {len(metrics)} metrics)",
+            title=dict(text=f"Country Comparison (Radar • {len(metrics)} metrics)", font=dict(size=32, family="Inter, Arial, sans-serif")),
             polar=dict(
                 radialaxis=dict(
                     visible=True,
@@ -554,17 +617,30 @@ class VisualizationFactory:
                     tickvals=[0, 0.25, 0.5, 0.75, 1.0],
                     tickformat=".0%",
                     gridcolor="rgba(0,0,0,0.10)",
+                    tickfont=dict(size=22, family="Inter, Arial, sans-serif"),
+                    linewidth=3,
                 ),
                 angularaxis=dict(
                     direction="clockwise",
                     rotation=90,
                     gridcolor="rgba(0,0,0,0.08)",
+                    tickfont=dict(size=22, family="Inter, Arial, sans-serif"),
+                    linewidth=3,
                 ),
             ),
-            legend=dict(orientation="h", yanchor="bottom", y=-0.25, xanchor="center", x=0.5, itemclick="toggleothers"),
-            margin=dict(l=60, r=60, t=60, b=95),
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=-0.25,
+                xanchor="center",
+                x=0.5,
+                itemclick="toggleothers",
+                font=dict(size=22, family="Inter, Arial, sans-serif")
+            ),
+            margin=dict(l=100, r=100, t=100, b=130),
             dragmode="orbit",
             hovermode="closest",
+            font=dict(size=12)
         )
 
         return fig
@@ -637,6 +713,15 @@ class VisualizationFactory:
             labels={x_metric: label_x, y_metric: label_y},
         )
 
+        # Update traces for better export quality
+        fig.update_traces(
+            marker=dict(
+                size=12,  # Larger markers for better visibility
+                line=dict(width=2, color='rgba(0,0,0,0.3)'),  # Border around markers
+                opacity=0.8
+            )
+        )
+
         # Compute Pearson correlation for the title
         try:
             r = dff[x_metric].corr(dff[y_metric])
@@ -645,10 +730,11 @@ class VisualizationFactory:
             corr_text = ""
 
         fig.update_layout(
-            title=f"{label_y} vs {label_x}{corr_text}",
+            title=dict(text=f"{label_y} vs {label_x}{corr_text}", font=dict(size=24)),
             xaxis_title=label_x,
             yaxis_title=label_y,
             margin=dict(l=50, r=20, t=50, b=50),
+            font=dict(size=18)
         )
 
         # Make facet annotations smaller/cleaner
@@ -699,7 +785,12 @@ class VisualizationFactory:
                 title=f"Distribution of {label}"
                       + (f" by {group_by}" if group_by else ""),
             )
-            fig.update_layout(bargap=0.05)
+            fig.update_layout(
+                bargap=0.05,
+                font=dict(size=20),
+                title=dict(font=dict(size=28))
+            )
+            fig.update_traces(marker_line_width=2, marker_line_color='rgba(0,0,0,0.3)')
 
         elif idiom == "box":
             fig = px.box(
@@ -711,6 +802,8 @@ class VisualizationFactory:
                 labels={metric: label, group_by: group_by} if group_by else {metric: label},
                 title=f"Box plot of {label}" + (f" by {group_by}" if group_by else ""),
             )
+            fig.update_layout(font=dict(size=20), title=dict(font=dict(size=28)))
+            fig.update_traces(marker=dict(size=8, line=dict(width=2)))
 
         else:  # violin
             fig = px.violin(
@@ -723,6 +816,8 @@ class VisualizationFactory:
                 labels={metric: label, group_by: group_by} if group_by else {metric: label},
                 title=f"Violin plot of {label}" + (f" by {group_by}" if group_by else ""),
             )
+            fig.update_layout(font=dict(size=20), title=dict(font=dict(size=28)))
+            fig.update_traces(marker=dict(size=7, line=dict(width=2)))
 
         # Details-on-demand: annotate selected country value
         if selected_country and "Country" in dff.columns and selected_country in set(dff["Country"]):
@@ -780,7 +875,11 @@ class VisualizationFactory:
                     x=dff[metric],
                     y=dff["Country"],
                     orientation="h",
-                    marker=dict(color=colors),
+                    marker=dict(
+                        color=colors,
+                        line=dict(width=1, color='rgba(0,0,0,0.2)'),
+                    ),
+                    textfont=dict(size=18),
                     hovertemplate="<b>%{y}</b><br>" + label + ": %{x:,.2f}<extra></extra>",
                 )
             ]
@@ -788,13 +887,15 @@ class VisualizationFactory:
 
         title = f"{label} — {'Top' if mode == 'top' else 'Bottom'} {len(dff)}"
         fig.update_layout(
-            title=dict(text=title, x=0.01, xanchor="left"),
+            title=dict(text=title, x=0.01, xanchor="left", font=dict(size=24)),
             margin=dict(l=10, r=10, t=50, b=10),
             height=300,
-            yaxis=dict(autorange="reversed"),
+            yaxis=dict(autorange="reversed", tickfont=dict(size=18)),
+            xaxis=dict(tickfont=dict(size=18)),
+            font=dict(size=20)
         )
-        fig.update_xaxes(showgrid=True, gridcolor="rgba(0,0,0,0.06)")
-        fig.update_yaxes(showgrid=False)
+        fig.update_xaxes(showgrid=True, gridcolor="rgba(0,0,0,0.06)", linewidth=2)
+        fig.update_yaxes(showgrid=False, linewidth=2)
         return fig
 
 
@@ -838,7 +939,7 @@ class VisualizationFactory:
         )
 
         fig.update_traces(
-            marker=dict(size=7, line=dict(width=0)),
+            marker=dict(size=8, line=dict(width=1, color='rgba(255,255,255,0.5)')),
             hovertemplate=(
                 "<b>%{hovertext}</b><br>"
                 + self._label(x_metric)
@@ -857,22 +958,24 @@ class VisualizationFactory:
                     y=[row[y_metric]],
                     mode="markers",
                     name=selected_country,
-                    marker=dict(size=16, color="rgba(255,107,107,1)", line=dict(width=2, color="white")),
+                    marker=dict(size=18, color="rgba(255,107,107,1)", line=dict(width=2, color="white")),
                     hovertemplate=f"<b>{selected_country}</b><br>{self._label(x_metric)}: %{{x:,.0f}}<br>{self._label(y_metric)}: %{{y:,.2f}}<extra></extra>",
                 )
             )
 
         # Less clutter: move legend to the right, shorten axis titles
         fig.update_layout(
-            title=dict(text=f"Relationship: {self._label(y_metric)} vs {self._label(x_metric)}" + (" (log x)" if use_log_x else ""), x=0.01, xanchor="left"),
+            title=dict(text=f"Relationship: {self._label(y_metric)} vs {self._label(x_metric)}" + (" (log x)" if use_log_x else ""), x=0.01, xanchor="left", font=dict(size=24)),
             margin=dict(l=20, r=10, t=60, b=30),
             height=300,
+            font=dict(size=20),
             legend=dict(
                 orientation="v",
                 x=0.99,
                 y=1,
                 xanchor="right",
                 yanchor="top",
+                font=dict(size=11),
                 bgcolor="rgba(0,0,0,0)",
             ),
         )

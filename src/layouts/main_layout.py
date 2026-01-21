@@ -161,8 +161,16 @@ def create_layout(merged_data, metrics_info, country_list):
                                                                                             dcc.Graph(
                                                                                                 id="overview-regional",
                                                                                                 config={
-                                                                                                    "displayModeBar": False,
+                                                                                                    "displayModeBar": True,
                                                                                                     "displaylogo": False,
+                                                                                                    "toImageButtonOptions": {
+                                                                                                        "format": "png",
+                                                                                                        "filename": "regional_overview",
+                                                                                                        "height": 1920,
+                                                                                                        "width": 2560,
+                                                                                                        "scale": 4
+                                                                                                    },
+                                                                                                    "modeBarButtonsToAdd": ["toImage"]
                                                                                                 },
                                                                                                 style={"height": "320px"},
                                                                                             )
@@ -200,8 +208,16 @@ def create_layout(merged_data, metrics_info, country_list):
                                                                                             dcc.Graph(
                                                                                                 id="rank-chart",
                                                                                                 config={
-                                                                                                    "displayModeBar": False,
+                                                                                                    "displayModeBar": True,
                                                                                                     "displaylogo": False,
+                                                                                                    "toImageButtonOptions": {
+                                                                                                        "format": "png",
+                                                                                                        "filename": "ranking_chart",
+                                                                                                        "height": 1800,
+                                                                                                        "width": 2400,
+                                                                                                        "scale": 4
+                                                                                                    },
+                                                                                                    "modeBarButtonsToAdd": ["toImage"]
                                                                                                 },
                                                                                                 style={"height": "300px"},
                                                                                             )
@@ -232,8 +248,16 @@ def create_layout(merged_data, metrics_info, country_list):
                                                                                             dcc.Graph(
                                                                                                 id="overview-scatter",
                                                                                                 config={
-                                                                                                    "displayModeBar": False,
+                                                                                                    "displayModeBar": True,
                                                                                                     "displaylogo": False,
+                                                                                                    "toImageButtonOptions": {
+                                                                                                        "format": "png",
+                                                                                                        "filename": "relationship_explorer",
+                                                                                                        "height": 1800,
+                                                                                                        "width": 2400,
+                                                                                                        "scale": 4
+                                                                                                    },
+                                                                                                    "modeBarButtonsToAdd": ["toImage"]
                                                                                                 },
                                                                                                 style={"height": "300px"},
                                                                                             )
@@ -264,8 +288,16 @@ def create_layout(merged_data, metrics_info, country_list):
                                                                                             dcc.Graph(
                                                                                                 id="overview-spread",
                                                                                                 config={
-                                                                                                    "displayModeBar": False,
+                                                                                                    "displayModeBar": True,
                                                                                                     "displaylogo": False,
+                                                                                                    "toImageButtonOptions": {
+                                                                                                        "format": "png",
+                                                                                                        "filename": "spread_snapshot",
+                                                                                                        "height": 1560,
+                                                                                                        "width": 2080,
+                                                                                                        "scale": 4
+                                                                                                    },
+                                                                                                    "modeBarButtonsToAdd": ["toImage"]
                                                                                                 },
                                                                                                 style={"height": "260px"},
                                                                                             )
@@ -308,7 +340,21 @@ def create_layout(merged_data, metrics_info, country_list):
                                                                             dcc.Loading(
                                                                                 id="loading-comparison",
                                                                                 type="circle",
-                                                                                children=[dcc.Graph(id="comparison-chart")],
+                                                                                children=[dcc.Graph(
+                                                                                    id="comparison-chart",
+                                                                                    config={
+                                                                                        "displayModeBar": True,
+                                                                                        "displaylogo": False,
+                                                                                        "toImageButtonOptions": {
+                                                                                            "format": "png",
+                                                                                            "filename": "comparison_chart",
+                                                                                            "height": 2400,
+                                                                                            "width": 3200,
+                                                                                            "scale": 4
+                                                                                        },
+                                                                                        "modeBarButtonsToAdd": ["toImage"]
+                                                                                    }
+                                                                                )],
                                                                             )
                                                                         ],
                                                                         width=12,
@@ -345,8 +391,16 @@ def create_layout(merged_data, metrics_info, country_list):
                                                                                             dcc.Graph(
                                                                                                 id="correlation-chart",
                                                                                                 config={
-                                                                                                    "displayModeBar": False,
+                                                                                                    "displayModeBar": True,
                                                                                                     "displaylogo": False,
+                                                                                                    "toImageButtonOptions": {
+                                                                                                        "format": "png",
+                                                                                                        "filename": "correlation_scatter",
+                                                                                                        "height": 2640,
+                                                                                                        "width": 2640,
+                                                                                                        "scale": 4
+                                                                                                    },
+                                                                                                    "modeBarButtonsToAdd": ["toImage"]
                                                                                                 },
                                                                                                 style={
                                                                                                     "width": "50%",
@@ -358,8 +412,16 @@ def create_layout(merged_data, metrics_info, country_list):
                                                                                             dcc.Graph(
                                                                                                 id="heatmap-chart",
                                                                                                 config={
-                                                                                                    "displayModeBar": False,
+                                                                                                    "displayModeBar": True,
                                                                                                     "displaylogo": False,
+                                                                                                    "toImageButtonOptions": {
+                                                                                                        "format": "png",
+                                                                                                        "filename": "correlation_heatmap",
+                                                                                                        "height": 2640,
+                                                                                                        "width": 2640,
+                                                                                                        "scale": 4
+                                                                                                    },
+                                                                                                    "modeBarButtonsToAdd": ["toImage"]
                                                                                                 },
                                                                                                 style={
                                                                                                     "width": "50%",
@@ -392,7 +454,21 @@ def create_layout(merged_data, metrics_info, country_list):
                                                             dcc.Loading(
                                                                 id="loading-regional",
                                                                 type="circle",
-                                                                children=[dcc.Graph(id="regional-chart")],
+                                                                children=[dcc.Graph(
+                                                                    id="regional-chart",
+                                                                    config={
+                                                                        "displayModeBar": True,
+                                                                        "displaylogo": False,
+                                                                        "toImageButtonOptions": {
+                                                                            "format": "png",
+                                                                            "filename": "regional_analysis",
+                                                                            "height": 2400,
+                                                                            "width": 3200,
+                                                                            "scale": 4
+                                                                        },
+                                                                        "modeBarButtonsToAdd": ["toImage"]
+                                                                    }
+                                                                )],
                                                             )
                                                         ],
                                                         className="p-3",
@@ -417,7 +493,21 @@ def create_layout(merged_data, metrics_info, country_list):
                                                                             dcc.Loading(
                                                                                 id="loading-distribution",
                                                                                 type="circle",
-                                                                                children=[dcc.Graph(id="distribution-chart")],
+                                                                                children=[dcc.Graph(
+                                                                                    id="distribution-chart",
+                                                                                    config={
+                                                                                        "displayModeBar": True,
+                                                                                        "displaylogo": False,
+                                                                                        "toImageButtonOptions": {
+                                                                                            "format": "png",
+                                                                                            "filename": "distribution_analysis",
+                                                                                            "height": 2400,
+                                                                                            "width": 3200,
+                                                                                            "scale": 4
+                                                                                        },
+                                                                                        "modeBarButtonsToAdd": ["toImage"]
+                                                                                    }
+                                                                                )],
                                                                             )
                                                                         ],
                                                                         width=12,
