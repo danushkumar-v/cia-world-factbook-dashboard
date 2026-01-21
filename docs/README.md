@@ -1,26 +1,34 @@
 # Global Insights Explorer
 
-A production-ready, interactive data visualization web application for exploring CIA World Factbook data across 259 countries.
+A production-ready, interactive data visualization web application for exploring CIA World Factbook data across 259 countries and territories.
 
-## 🌟 Features
+## Live Deployment
 
-- **🗺️ Advanced Maps**: Beautiful choropleth maps, 3D globe visualizations, and animated geospatial analytics
-- **📊 Interactive Analytics**: Multi-dimensional comparisons, correlation analysis, and regional insights
-- **🎨 Professional Design**: Modern UI with custom color schemes, gradients, and animations
-- **⚡ High Performance**: Optimized data processing with caching and lazy loading
-- **📱 Responsive**: Works seamlessly on desktop, tablet, and mobile devices
+**Access the live application:** [https://cia-world-factbook-dashboard.onrender.com/](https://cia-world-factbook-dashboard.onrender.com/)
 
-## 📊 Data Domains
+**Important:** The deployment is hosted on a free-tier cloud service and may enter sleep mode during periods of inactivity. If you encounter a loading screen, please wait approximately 50 seconds for the service to initialize and restart. After the initial load, the application will perform normally.
 
-- **Geography**: Area, land use, elevation, coastlines
-- **Demographics**: Population, growth rates, literacy, age distribution
-- **Economy**: GDP, trade, unemployment, poverty levels
-- **Energy**: Electricity, fuel consumption, carbon emissions
-- **Transportation**: Roads, railways, airports, pipelines
-- **Communications**: Internet, mobile, broadband penetration
-- **Government**: Political structure, capital cities, voting age
+## Features
 
-## 🚀 Quick Start
+- **Advanced Mapping Capabilities**: Choropleth maps, 3D globe visualizations, and animated geospatial analytics
+- **Interactive Analytics**: Multi-dimensional country comparisons, correlation analysis, and regional insights
+- **Professional User Interface**: Modern design with custom color schemes, gradients, and smooth animations
+- **Performance Optimization**: Optimized data processing with intelligent caching and lazy loading mechanisms
+- **Responsive Design**: Seamless experience across desktop, tablet, and mobile devices
+
+## Data Domains
+
+The application covers seven comprehensive data domains:
+
+- **Geography**: Land area, land use patterns, elevation data, and coastline measurements
+- **Demographics**: Population statistics, growth rates, literacy levels, and age distribution
+- **Economy**: GDP metrics, trade statistics, unemployment rates, and poverty indicators
+- **Energy**: Electricity production and consumption, fuel usage, and carbon emissions
+- **Transportation**: Road networks, railway systems, airport infrastructure, and pipeline networks
+- **Communications**: Internet penetration, mobile usage, and broadband accessibility
+- **Government**: Political structure, capital cities, administrative divisions, and voting age requirements
+
+## Quick Start
 
 ### Prerequisites
 
@@ -71,7 +79,7 @@ $env:APP_ENV="production"; python app.py
 
 The application will be available at `http://localhost:8050`
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 Project/
@@ -100,7 +108,7 @@ Project/
 └── .cache/                     # Cached processed data (optional)
 ```
 
-## 🎨 Visualization Types
+## Visualization Types
 
 ### Maps
 - **Choropleth Maps**: Color-coded countries based on metrics
@@ -114,7 +122,7 @@ Project/
 - **Sunburst Charts**: Hierarchical data exploration
 - **Heatmaps**: Correlation matrices
 
-## 🛠️ Configuration
+## Configuration
 
 Edit `config.py` or `.env` file to customize:
 
@@ -123,7 +131,7 @@ Edit `config.py` or `.env` file to customize:
 - **CACHE_TYPE**: Cache backend (filesystem/redis)
 - **MAPBOX_TOKEN**: Optional Mapbox access token for enhanced maps
 
-## 📊 Usage Examples
+## Usage Examples
 
 ### 1. Global GDP Comparison
 - Select Domain: **Economy**
@@ -148,7 +156,7 @@ Edit `config.py` or `.env` file to customize:
 - Y-Axis: **Internet Users**
 - Color By: **Continent**
 
-## 🚀 Production Deployment
+## Production Deployment
 
 ### Using Gunicorn (Linux/Mac)
 
@@ -172,31 +180,33 @@ docker build -t global-insights-explorer .
 docker run -p 8050:8050 global-insights-explorer
 ```
 
-## 🎯 Performance Optimization
+## Performance Optimization
 
-- **Caching**: Processed data is cached to reduce load times
-- **Lazy Loading**: Charts load on-demand
-- **Data Filtering**: Client-side filtering for instant updates
-- **Optimized Rendering**: Plotly configuration for smooth animations
+The application implements several performance optimization strategies:
 
-## 🤝 Contributing
+- **Caching**: Processed data is cached in memory to significantly reduce load times on subsequent requests
+- **Lazy Loading**: Visualization components load on-demand to minimize initial page load time
+- **Client-Side Filtering**: Data filtering is performed client-side for instantaneous updates without server round-trips
+- **Optimized Rendering**: Custom Plotly configuration ensures smooth animations and responsive interactions
 
-Contributions are welcome! Please feel free to submit pull requests.
+## Contributing
 
-## 📄 License
+Contributions are welcome and encouraged. Please feel free to submit pull requests following the project's coding standards and guidelines.
 
-This project is licensed under the MIT License.
+## License
 
-## 🙏 Acknowledgments
+This project is licensed under the MIT License. See the LICENSE file for complete licensing information.
 
-- Data Source: CIA World Factbook 2024-2025
-- Visualization: Plotly & Dash
-- Design: Bootstrap & Custom CSS
-- Icons: Unicode Emojis
+## Acknowledgments
 
-## 📞 Support
+- **Data Source**: CIA World Factbook (2024-2025 edition)
+- **Visualization Framework**: Plotly and Dash by Plotly
+- **UI Framework**: Bootstrap with custom CSS styling
+- **Python Libraries**: Pandas, NumPy, Flask, and supporting packages
 
-For issues or questions, please open an issue on the project repository.
+## Support
+
+For issues, bug reports, or feature requests, please open an issue on the project repository with a detailed description of your concern.
 
 ---
 
