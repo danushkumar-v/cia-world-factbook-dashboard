@@ -762,6 +762,12 @@ class VisualizationFactory:
             return go.Figure(layout=dict(title="No data available"))
 
         dff = dff.sort_values(metric, ascending=(mode == "bottom")).head(int(n))
+        
+        # Sort for display (highest at top for 'top' mode)
+        if mode == "top":
+            dff = dff.sort_values(metric, ascending=True)
+        else:
+            dff = dff.sort_values(metric, ascending=False)
 
         # Highlight selected country if present
         colors = ["rgba(33,150,243,0.85)"] * len(dff)
@@ -774,13 +780,15 @@ class VisualizationFactory:
                 pass
 
         fig = go.Figure(
-            data=
-            [
+            data=[
                 go.Bar(
                     x=dff[metric],
                     y=dff["Country"],
                     orientation="h",
                     marker=dict(color=colors),
+                    text=dff[metric].apply(lambda x: f"{x:,.1f}" if abs(x) < 1000 else f"{x:,.0f}"),
+                    textposition="outside",
+                    textfont=dict(size=9),
                     hovertemplate="<b>%{y}</b><br>" + label + ": %{x:,.2f}<extra></extra>",
                 )
             ]
@@ -788,10 +796,12 @@ class VisualizationFactory:
 
         title = f"{label} — {'Top' if mode == 'top' else 'Bottom'} {len(dff)}"
         fig.update_layout(
-            title=dict(text=title, x=0.01, xanchor="left"),
-            margin=dict(l=10, r=10, t=50, b=10),
+            title=dict(text=title, x=0.01, xanchor="left", font=dict(size=13)),
+            margin=dict(l=10, r=70, t=45, b=20),
             height=300,
-            yaxis=dict(autorange="reversed"),
+            yaxis=dict(tickfont=dict(size=11), title=dict(font=dict(size=12))),
+            xaxis=dict(tickfont=dict(size=11), title=dict(font=dict(size=12))),
+            bargap=0.2,
         )
         fig.update_xaxes(showgrid=True, gridcolor="rgba(0,0,0,0.06)")
         fig.update_yaxes(showgrid=False)
@@ -862,18 +872,46 @@ class VisualizationFactory:
                 )
             )
 
-        # Less clutter: move legend to the right, shorten axis titles
+        # Dynamic axis ranges - auto-adjust based on filtered data
+        # Add 5% padding to prevent points at edges
+        y_min, y_max = dff[y_metric].min(), dff[y_metric].max()
+        y_range = y_max - y_min
+        y_padding = y_range * 0.05 if y_range > 0 else 0.1
+        
         fig.update_layout(
-            title=dict(text=f"Relationship: {self._label(y_metric)} vs {self._label(x_metric)}" + (" (log x)" if use_log_x else ""), x=0.01, xanchor="left"),
-            margin=dict(l=20, r=10, t=60, b=30),
+            title=dict(
+                text=f"{self._label(y_metric)} vs {self._label(x_metric)}" + (" (log x)" if use_log_x else ""),
+                x=0.01,
+                xanchor="left",
+                font=dict(size=13)
+            ),
+            margin=dict(l=65, r=20, t=50, b=55),
             height=300,
             legend=dict(
                 orientation="v",
-                x=0.99,
+                x=1.02,
                 y=1,
-                xanchor="right",
+                xanchor="left",
                 yanchor="top",
-                bgcolor="rgba(0,0,0,0)",
+                bgcolor="rgba(255,255,255,0.9)",
+                bordercolor="rgba(0,0,0,0.1)",
+                borderwidth=1,
+                font=dict(size=10),
+                itemsizing='constant',
+                tracegroupgap=5,
+            ),
+            yaxis=dict(
+                autorange=True,
+                range=[y_min - y_padding, y_max + y_padding],
+                fixedrange=False,
+                tickfont=dict(size=11),
+                title=dict(font=dict(size=12)),
+            ),
+            xaxis=dict(
+                autorange=True,
+                fixedrange=False,
+                tickfont=dict(size=11),
+                title=dict(font=dict(size=12)),
             ),
         )
 

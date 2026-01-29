@@ -429,11 +429,19 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
                     )
 
             fig.update_layout(
-                title=dict(text="Spread Snapshot (Box plot)", x=0.01, xanchor="left"),
-                margin=dict(l=20, r=10, t=50, b=20),
+                title=dict(text="Spread Snapshot (Box plot)", x=0.01, xanchor="left", font=dict(size=13)),
+                margin=dict(l=55, r=10, t=50, b=65),
                 height=260,
+                xaxis=dict(
+                    tickangle=-45,
+                    tickfont=dict(size=11),
+                    title=dict(text="Continent", font=dict(size=12)),
+                ),
+                yaxis=dict(
+                    tickfont=dict(size=11),
+                    title=dict(font=dict(size=12)),
+                ),
             )
-            fig.update_xaxes(tickangle=0)
             return viz_factory.apply_theme(fig, theme)
         except Exception:
             logger.exception("overview-spread failed for metric=%s", metric)
@@ -487,18 +495,23 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
         except Exception:
             outlier_count = None
 
-        # Compact KPI tiles
+        # Compact KPI tiles with visual enhancements
         kpis = dbc.Row(
             [
                 dbc.Col(
                     dbc.Card(
                         dbc.CardBody(
                             [
-                                html.Div("Coverage", className="mini-kpi-label"),
-                                html.Div(f"{coverage:.0f}%", className="mini-kpi-value"),
+                                html.Div(
+                                    [
+                                        html.Span("📊 ", style={"fontSize": "0.85rem"}),
+                                        html.Span("Coverage", className="mini-kpi-label"),
+                                    ]
+                                ),
+                                html.Div(f"{coverage:.0f}%", className="mini-kpi-value", style={"color": "#10b981" if coverage >= 80 else "#f59e0b" if coverage >= 60 else "#ef4444"}),
                             ]
                         ),
-                        className="mini-kpi",
+                        className="mini-kpi mini-kpi-coverage",
                     ),
                     width=6,
                 ),
@@ -506,14 +519,20 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
                     dbc.Card(
                         dbc.CardBody(
                             [
-                                html.Div("Median", className="mini-kpi-label"),
                                 html.Div(
-                                    "N/A" if median is None else f"{median:,.2f}",
+                                    [
+                                        html.Span("📈 ", style={"fontSize": "0.85rem"}),
+                                        html.Span("Median", className="mini-kpi-label"),
+                                    ]
+                                ),
+                                html.Div(
+                                    "—" if median is None else f"{median:,.1f}",
                                     className="mini-kpi-value",
+                                    style={"color": "#3b82f6"},
                                 ),
                             ]
                         ),
-                        className="mini-kpi",
+                        className="mini-kpi mini-kpi-median",
                     ),
                     width=6,
                 ),
@@ -521,11 +540,16 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
                     dbc.Card(
                         dbc.CardBody(
                             [
-                                html.Div("Countries", className="mini-kpi-label"),
-                                html.Div(f"{df_filtered['Country'].nunique()}", className="mini-kpi-value"),
+                                html.Div(
+                                    [
+                                        html.Span("🌍 ", style={"fontSize": "0.85rem"}),
+                                        html.Span("Countries", className="mini-kpi-label"),
+                                    ]
+                                ),
+                                html.Div(f"{df_filtered['Country'].nunique()}", className="mini-kpi-value", style={"color": "#8b5cf6"}),
                             ]
                         ),
-                        className="mini-kpi",
+                        className="mini-kpi mini-kpi-countries",
                     ),
                     width=6,
                     className="mt-2",
@@ -534,14 +558,20 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
                     dbc.Card(
                         dbc.CardBody(
                             [
-                                html.Div("Outliers", className="mini-kpi-label"),
                                 html.Div(
-                                    "N/A" if outlier_count is None else f"{outlier_count}",
+                                    [
+                                        html.Span("⚠️ ", style={"fontSize": "0.85rem"}),
+                                        html.Span("Outliers", className="mini-kpi-label"),
+                                    ]
+                                ),
+                                html.Div(
+                                    "—" if outlier_count is None else f"{outlier_count}",
                                     className="mini-kpi-value",
+                                    style={"color": "#ec4899"},
                                 ),
                             ]
                         ),
-                        className="mini-kpi",
+                        className="mini-kpi mini-kpi-outliers",
                     ),
                     width=6,
                     className="mt-2",
@@ -555,22 +585,73 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
             row = df_filtered[df_filtered["Country"] == selected_country]
             if not row.empty and metric in row.columns:
                 val = row.iloc[0].get(metric)
-                bullets.append(html.Li([html.B(selected_country), f" selected — {val}"]))
+                formatted_val = f"{val:,.2f}" if isinstance(val, (int, float)) else str(val)
+                bullets.append(
+                    html.Div(
+                        [
+                            html.Span("🎯 ", style={"marginRight": "0.35rem"}),
+                            html.Span(selected_country, style={"fontWeight": "700", "color": "#ef4444"}),
+                            html.Span(" selected — ", style={"opacity": "0.7"}),
+                            html.Span(formatted_val, style={"fontWeight": "600"}),
+                        ],
+                        className="insight-item insight-selected"
+                    )
+                )
 
         if not top.empty:
             top_country = top.iloc[0]["Country"]
             top_val = top.iloc[0].get(metric)
-            bullets.append(html.Li([html.B("Leader: "), f"{top_country} ({top_val})"]))
+            formatted_top = f"{top_val:,.2f}" if isinstance(top_val, (int, float)) else str(top_val)
+            bullets.append(
+                html.Div(
+                    [
+                        html.Span("🏆 ", style={"marginRight": "0.35rem"}),
+                        html.Span("Leader: ", style={"fontWeight": "600", "opacity": "0.8"}),
+                        html.Span(top_country, style={"fontWeight": "700", "color": "#10b981"}),
+                        html.Span(f" ({formatted_top})", style={"opacity": "0.7", "fontSize": "0.9rem"}),
+                    ],
+                    className="insight-item"
+                )
+            )
 
         if not bottom.empty:
             bottom_country = bottom.iloc[0]["Country"]
             bottom_val = bottom.iloc[0].get(metric)
-            bullets.append(html.Li([html.B("Lowest: "), f"{bottom_country} ({bottom_val})"]))
+            formatted_bottom = f"{bottom_val:,.2f}" if isinstance(bottom_val, (int, float)) else str(bottom_val)
+            bullets.append(
+                html.Div(
+                    [
+                        html.Span("📉 ", style={"marginRight": "0.35rem"}),
+                        html.Span("Lowest: ", style={"fontWeight": "600", "opacity": "0.8"}),
+                        html.Span(bottom_country, style={"fontWeight": "700", "color": "#f59e0b"}),
+                        html.Span(f" ({formatted_bottom})", style={"opacity": "0.7", "fontSize": "0.9rem"}),
+                    ],
+                    className="insight-item"
+                )
+            )
 
-        bullets.append(html.Li([html.B("Top 3: "), ", ".join(top["Country"].tolist())]))
-        bullets.append(html.Li([html.B("Bottom 3: "), ", ".join(bottom["Country"].tolist())]))
+        bullets.append(
+            html.Div(
+                [
+                    html.Span("🔝 ", style={"marginRight": "0.35rem"}),
+                    html.Span("Top 3: ", style={"fontWeight": "600", "opacity": "0.8"}),
+                    html.Span(", ".join(top["Country"].tolist()), style={"fontWeight": "500"}),
+                ],
+                className="insight-item"
+            )
+        )
+        bullets.append(
+            html.Div(
+                [
+                    html.Span("🔻 ", style={"marginRight": "0.35rem"}),
+                    html.Span("Bottom 3: ", style={"fontWeight": "600", "opacity": "0.8"}),
+                    html.Span(", ".join(bottom["Country"].tolist()), style={"fontWeight": "500"}),
+                ],
+                className="insight-item"
+            )
+        )
 
-        parts = html.Ul(bullets, className="insights-list")
+        parts = html.Div(bullets, className="insights-list")
         return kpis, parts
 
 
@@ -686,44 +767,84 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
 
         # Show the current main metric + a couple of helpful metadata fields
         parts = [
-            html.Div([html.B("Country: "), row.get("Country", selected_country)]),
+            html.Div(
+                [
+                    html.Span("🌐 ", style={"marginRight": "0.5rem", "fontSize": "1rem"}),
+                    html.Span("Country: ", style={"fontWeight": "600", "opacity": "0.75"}),
+                    html.Span(row.get("Country", selected_country), style={"fontWeight": "700", "color": "#6366f1"}),
+                ],
+                className="detail-row"
+            ),
         ]
         if "Continent" in merged_data.columns:
-            parts.append(html.Div([html.B("Continent: "), row.get("Continent", "-")]))
+            parts.append(
+                html.Div(
+                    [
+                        html.Span("🗺️ ", style={"marginRight": "0.5rem", "fontSize": "1rem"}),
+                        html.Span("Continent: ", style={"fontWeight": "600", "opacity": "0.75"}),
+                        html.Span(row.get("Continent", "-"), style={"fontWeight": "600"}),
+                    ],
+                    className="detail-row"
+                )
+            )
         if "Development_Level" in merged_data.columns:
-            parts.append(html.Div([html.B("Development level: "), row.get("Development_Level", "-")]))
+            dev_level = row.get("Development_Level", "-")
+            dev_color = "#10b981" if "High" in str(dev_level) else "#f59e0b" if "Middle" in str(dev_level) else "#6b7280"
+            parts.append(
+                html.Div(
+                    [
+                        html.Span("📊 ", style={"marginRight": "0.5rem", "fontSize": "1rem"}),
+                        html.Span("Development level: ", style={"fontWeight": "600", "opacity": "0.75"}),
+                        html.Span(dev_level, style={"fontWeight": "600", "color": dev_color}),
+                    ],
+                    className="detail-row"
+                )
+            )
 
         metric_val = None
         if metric and metric in merged_data.columns:
             metric_val = row.get(metric, None)
-            parts.append(html.Div([html.B(f"{metric.replace('_',' ').title()}: "), f"{metric_val}"]))
+            formatted_val = f"{metric_val:,.2f}" if isinstance(metric_val, (int, float)) else str(metric_val)
+            parts.append(
+                html.Div(
+                    [
+                        html.Span("📈 ", style={"marginRight": "0.5rem", "fontSize": "1rem"}),
+                        html.Span(f"{metric.replace('_',' ').title()}: ", style={"fontWeight": "600", "opacity": "0.75"}),
+                        html.Span(formatted_val, style={"fontWeight": "700", "color": "#3b82f6"}),
+                    ],
+                    className="detail-row"
+                )
+            )
 
-        # KPI chips
-        def _chip(label, value, tone="primary"):
-            return dbc.Badge(
-                [html.Span(label + ": ", className="chip-label"), html.Span(str(value), className="chip-value")],
-                color=tone,
-                className="detail-chip",
-                pill=True,
+        # KPI chips with better styling
+        def _chip(icon, label, value, color_hex):
+            return html.Div(
+                [
+                    html.Span(icon + " ", style={"fontSize": "0.9rem"}),
+                    html.Span(label + ": ", style={"fontSize": "0.7rem", "fontWeight": "600", "opacity": "0.7", "textTransform": "uppercase", "letterSpacing": "0.05em"}),
+                    html.Span(str(value), style={"fontSize": "0.85rem", "fontWeight": "700", "color": color_hex}),
+                ],
+                className="detail-chip-enhanced"
             )
 
         chips = []
         if metric:
-            chips.append(_chip("Metric", metric.replace("_", " "), "info"))
+            chips.append(_chip("🎯", "Metric", metric.replace("_", " "), "#06b6d4"))
         if metric_val is not None:
-            chips.append(_chip("Value", metric_val, "primary"))
+            formatted_metric_val = f"{metric_val:,.1f}" if isinstance(metric_val, (int, float)) else str(metric_val)
+            chips.append(_chip("📊", "Value", formatted_metric_val, "#6366f1"))
         if "Real_GDP_per_Capita_USD" in merged_data.columns:
             gdp = row.get("Real_GDP_per_Capita_USD", None)
             if gdp is not None and gdp == gdp:
-                chips.append(_chip("GDP/Cap", f"${float(gdp):,.0f}", "success"))
+                chips.append(_chip("💰", "GDP/Cap", f"${float(gdp):,.0f}", "#10b981"))
         if "Total_Population" in merged_data.columns:
             pop = row.get("Total_Population", None)
             if pop is not None and pop == pop:
-                chips.append(_chip("Pop", f"{float(pop)/1e6:.1f}M", "secondary"))
+                chips.append(_chip("👥", "Pop", f"{float(pop)/1e6:.1f}M", "#8b5cf6"))
 
         kpi_row = html.Div(chips, className="details-kpis-row")
 
-        table = dbc.ListGroup([dbc.ListGroupItem(p) for p in parts])
+        table = html.Div([p for p in parts], className="details-info-list")
 
         # Mini contextual chart: selected vs continent mean vs global mean
         fig = go.Figure()
@@ -756,15 +877,33 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
                 go.Bar(
                     x=bars_x,
                     y=bars_y,
-                    marker=dict(color=["rgba(255,107,107,0.92)"] + ["rgba(33,150,243,0.75)"] * (len(bars_x) - 1)),
+                    marker=dict(
+                        color=["#ef4444", "#3b82f6", "#10b981"][:len(bars_x)],
+                        line=dict(width=0)
+                    ),
+                    text=[f"{v:,.0f}" if v > 1000 else f"{v:,.1f}" for v in bars_y],
+                    textposition="outside",
+                    textfont=dict(size=12, weight=700),
                     hovertemplate="%{x}<br>%{y:,.2f}<extra></extra>",
                 )
             )
 
             fig.update_layout(
-                margin=dict(l=10, r=10, t=20, b=10),
+                margin=dict(l=50, r=25, t=40, b=45),
                 height=220,
-                title=dict(text=(metric or "").replace("_", " "), x=0.01, xanchor="left"),
+                title=dict(text=(metric or "").replace("_", " "), x=0.01, xanchor="left", font=dict(size=12, weight=600)),
+                xaxis=dict(
+                    tickfont=dict(size=11),
+                    tickangle=-20,
+                    title=dict(font=dict(size=11)),
+                ),
+                yaxis=dict(
+                    tickfont=dict(size=11),
+                    showgrid=True,
+                    gridcolor="rgba(0,0,0,0.05)",
+                    title=dict(font=dict(size=11)),
+                ),
+                bargap=0.3,
             )
         except Exception:
             logger.exception("details mini chart failed for country=%s metric=%s", selected_country, metric)
