@@ -27,7 +27,7 @@ A production-ready, interactive data visualization web application for exploring
 
 ```powershell
 # Clone the repository
-git clone <repository-url>
+git clone https://github.com/danushkumar-v/cia-world-factbook-dashboard
 cd Project
 
 # Run setup script (recommended)
