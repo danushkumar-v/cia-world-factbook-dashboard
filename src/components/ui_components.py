@@ -179,10 +179,19 @@ def create_stats_cards(merged_data):
         className="mb-4",
     )
 
-def create_filters_panel(metrics_info):
+def create_filters_panel(metrics_info, default_metric=None, default_domain=None):
     """Create advanced filters panel (overview → filter → details)."""
     categories = list(metrics_info.keys())
-    default_domain = categories[0] if categories else None
+    if not default_domain:
+        default_domain = categories[0] if categories else None
+    
+    # Get initial metric options for default domain
+    if default_domain and default_domain in metrics_info:
+        initial_metric_options = [{'label': m['label'], 'value': m['name']} for m in metrics_info[default_domain]]
+        if not default_metric and initial_metric_options:
+            default_metric = initial_metric_options[0]['value']
+    else:
+        initial_metric_options = []
 
     return html.Div(
         [
@@ -212,6 +221,8 @@ def create_filters_panel(metrics_info):
                             html.Label("Metric", className="control-label"),
                             dcc.Dropdown(
                                 id="metric-selector",
+                                options=initial_metric_options,
+                                value=default_metric,
                                 clearable=False,
                                 className="mb-2",
                             ),
@@ -259,6 +270,7 @@ def create_filters_panel(metrics_info):
                                 id="continent-filter",
                                 options=[],
                                 multi=True,
+                                value=[],
                                 placeholder="All Continents",
                                 className="mb-3",
                             ),
@@ -267,6 +279,7 @@ def create_filters_panel(metrics_info):
                                 id="development-filter",
                                 options=[],
                                 multi=True,
+                                value=[],
                                 placeholder="All Levels",
                                 className="mb-2",
                             ),

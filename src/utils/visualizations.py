@@ -21,7 +21,7 @@ class VisualizationFactory:
 
         is_dark = (theme or "light") == "dark"
 
-        fig.update_layout(
+        layout_updates = dict(
             template="plotly_dark" if is_dark else "plotly_white",
             paper_bgcolor="rgba(0,0,0,0)",
             plot_bgcolor="rgba(0,0,0,0)",
@@ -33,6 +33,11 @@ class VisualizationFactory:
             ),
             transition=dict(duration=350, easing="cubic-in-out"),
         )
+        # Only set uirevision when not already defined by the caller
+        if getattr(fig.layout, "uirevision", None) is None:
+            layout_updates["uirevision"] = "theme"
+
+        fig.update_layout(**layout_updates)
 
         # Geo charts need a little extra love
         if "geo" in fig.layout:
@@ -59,9 +64,6 @@ class VisualizationFactory:
             tickfont=dict(color=axis_color),
             automargin=True,
         )
-
-        # Preserve user interactions across updates when possible
-        fig.update_layout(uirevision="theme")
 
         return fig
 

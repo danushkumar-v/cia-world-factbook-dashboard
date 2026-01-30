@@ -19,6 +19,20 @@ logger = logging.getLogger(__name__)
 def register_callbacks(app, merged_data, metrics_info, viz_factory):
     """Register all application callbacks"""
 
+    def _get_default_metric():
+        """Get default metric if none selected"""
+        first_category = next(iter(metrics_info), None)
+        if first_category and metrics_info[first_category]:
+            return metrics_info[first_category][0].get('name')
+        return None
+
+    def _normalize_multi(value):
+        if value is None:
+            return []
+        if isinstance(value, (list, tuple, set)):
+            return [v for v in value if v]
+        return [value]
+
     def _safe_figure(message: str, theme: Optional[str] = None, height: int = 260) -> go.Figure:
         fig = go.Figure()
         fig.add_annotation(
@@ -36,10 +50,12 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
 
     def _apply_filters(df: pd.DataFrame, continents, dev_levels) -> pd.DataFrame:
         out = df
-        if continents and "Continent" in out.columns:
-            out = out[out["Continent"].isin(continents)]
-        if dev_levels and "Development_Level" in out.columns:
-            out = out[out["Development_Level"].isin(dev_levels)]
+        conts = _normalize_multi(continents)
+        devs = _normalize_multi(dev_levels)
+        if conts and "Continent" in out.columns:
+            out = out[out["Continent"].astype(str).isin([str(c) for c in conts])]
+        if devs and "Development_Level" in out.columns:
+            out = out[out["Development_Level"].astype(str).isin([str(d) for d in devs])]
         return out
 
     # ------------------------------------------------------------
@@ -168,11 +184,19 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
 
         try:
             df_filtered = _apply_filters(merged_data.copy(), continents, dev_levels)
+            if metric not in df_filtered.columns:
+                return _safe_figure("Selected metric is not available.", theme, height=560)
+            if df_filtered.dropna(subset=[metric]).empty:
+                return _safe_figure("No data available for the current filters.", theme, height=560)
             title = f"{metric.replace('_', ' ').title()} - Global Distribution"
 
             # ---- Build the base figure (your normal behavior) ----
             if viz_type == 'choropleth':
                 fig = viz_factory.create_choropleth_map(df_filtered, metric, title, color_scheme)
+                fig.update_layout(
+                    uirevision=f"main-{metric}-{viz_type}-{color_scheme}",
+                    datarevision=f"main-{metric}-{viz_type}-{color_scheme}",
+                )
 
                 # Highlight clicked/selected country (no hover overlay; avoids artifacts)
                 if selected_country:
@@ -194,16 +218,36 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
                 return viz_factory.apply_theme(fig, theme)
 
             elif viz_type == 'globe':
-                return viz_factory.apply_theme(viz_factory.create_3d_globe(df_filtered, metric, title), theme)
+                fig = viz_factory.create_3d_globe(df_filtered, metric, title, color_scheme=color_scheme)
+                fig.update_layout(
+                    uirevision=f"main-{metric}-{viz_type}-{color_scheme}",
+                    datarevision=f"main-{metric}-{viz_type}-{color_scheme}",
+                )
+                return viz_factory.apply_theme(fig, theme)
 
             elif viz_type == 'sunburst':
-                return viz_factory.apply_theme(viz_factory.create_sunburst_chart(df_filtered, metric), theme)
+                fig = viz_factory.create_sunburst_chart(df_filtered, metric)
+                fig.update_layout(
+                    uirevision=f"main-{metric}-{viz_type}-{color_scheme}",
+                    datarevision=f"main-{metric}-{viz_type}-{color_scheme}",
+                )
+                return viz_factory.apply_theme(fig, theme)
 
             elif viz_type == 'regional':
-                return viz_factory.apply_theme(viz_factory.create_regional_bar_chart(df_filtered, metric), theme)
+                fig = viz_factory.create_regional_bar_chart(df_filtered, metric)
+                fig.update_layout(
+                    uirevision=f"main-{metric}-{viz_type}-{color_scheme}",
+                    datarevision=f"main-{metric}-{viz_type}-{color_scheme}",
+                )
+                return viz_factory.apply_theme(fig, theme)
 
             # fallback
-            return viz_factory.apply_theme(viz_factory.create_choropleth_map(df_filtered, metric, title, color_scheme), theme)
+            fig = viz_factory.create_choropleth_map(df_filtered, metric, title, color_scheme)
+            fig.update_layout(
+                uirevision=f"main-{metric}-{viz_type}-{color_scheme}",
+                datarevision=f"main-{metric}-{viz_type}-{color_scheme}",
+            )
+            return viz_factory.apply_theme(fig, theme)
         except Exception:
             logger.exception("main-visualization failed for metric=%s viz_type=%s", metric, viz_type)
             return _safe_figure("Unable to render map. Check that the metric has valid data.", theme, height=560)
@@ -272,7 +316,8 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
     def update_correlation_chart(x_metric, y_metric, color_by, facet_by, theme):
         """Update correlation scatter plot"""
         if not x_metric or not y_metric:
-            raise PreventUpdate
+            empty = _safe_figure("Select X and Y metrics for correlation analysis.", theme, height=400)
+            return empty, empty
 
         try:
             scatter_fig = viz_factory.apply_theme(
@@ -304,7 +349,9 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
     def update_regional_chart(metric, theme):
         """Update regional comparison chart"""
         if not metric:
-            raise PreventUpdate
+            metric = _get_default_metric()
+            if not metric:
+                return _safe_figure("No metric available", theme, height=320)
         try:
             return viz_factory.apply_theme(viz_factory.create_regional_bar_chart(merged_data, metric, "mean"), theme)
         except Exception:
@@ -326,7 +373,9 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
     )
     def update_rank_chart(metric, continents, dev_levels, selected_country, theme):
         if not metric:
-            raise PreventUpdate
+            metric = _get_default_metric()
+            if not metric:
+                return _safe_figure("No metric available", theme, height=300)
 
         try:
             df_filtered = _apply_filters(merged_data.copy(), continents, dev_levels)
@@ -355,7 +404,9 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
     )
     def update_overview_scatter(metric, domain, continents, dev_levels, selected_country, theme):
         if not metric:
-            raise PreventUpdate
+            metric = _get_default_metric()
+            if not metric:
+                return _safe_figure("No metric available", theme, height=300)
 
         try:
             df_filtered = _apply_filters(merged_data.copy(), continents, dev_levels)
@@ -399,7 +450,9 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
     )
     def update_overview_regional(metric, continents, dev_levels, theme):
         if not metric:
-            raise PreventUpdate
+            metric = _get_default_metric()
+            if not metric:
+                return _safe_figure("No metric available", theme, height=320)
 
         try:
             df_filtered = _apply_filters(merged_data.copy(), continents, dev_levels)
@@ -422,7 +475,9 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
     )
     def update_overview_spread(metric, continents, dev_levels, selected_country, theme):
         if not metric:
-            raise PreventUpdate
+            metric = _get_default_metric()
+            if not metric:
+                return _safe_figure("No metric available", theme, height=260)
 
         try:
             df_filtered = _apply_filters(merged_data.copy(), continents, dev_levels)
@@ -482,7 +537,12 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
     )
     def update_insights(metric, continents, dev_levels, selected_country):
         if not metric:
-            raise PreventUpdate
+            metric = _get_default_metric()
+            if not metric:
+                return (
+                    dbc.Row([dbc.Col(dbc.Alert("No metric available.", color="warning"), width=12)]),
+                    "Select a metric to see insights.",
+                )
 
         df_filtered = _apply_filters(merged_data.copy(), continents, dev_levels)
 
@@ -616,7 +676,9 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
     )
     def update_data_table(metric, continents, dev_levels):
         if not metric:
-            raise PreventUpdate
+            metric = _get_default_metric()
+            if not metric:
+                return [], []
 
         df_filtered = merged_data.copy()
         if continents:
@@ -824,7 +886,9 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
     )
     def update_distribution(metric, idiom, bins, show_points, continents, dev_levels, selected_country, theme):
         if not metric:
-            raise PreventUpdate
+            metric = _get_default_metric()
+            if not metric:
+                return _safe_figure("No metric available", theme, height=380)
 
         try:
             df_filtered = _apply_filters(merged_data.copy(), continents, dev_levels)

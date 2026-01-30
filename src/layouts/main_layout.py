@@ -93,7 +93,7 @@ def create_layout(merged_data, metrics_info, country_list):
                             # Left sidebar – filters always visible on lg+, scrollable
                             dbc.Col(
                                 [
-                                    create_filters_panel(metrics_info),
+                                    create_filters_panel(metrics_info, default_metric, first_category),
                                 ],
                                 width=12,
                                 lg=3,
