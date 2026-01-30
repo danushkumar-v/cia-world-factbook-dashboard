@@ -180,21 +180,27 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
         if not viz_type:
             viz_type = 'choropleth'
         if not color_scheme:
-            color_scheme = 'Viridis'
+            color_scheme = 'Blues'
 
         try:
             df_filtered = _apply_filters(merged_data.copy(), continents, dev_levels)
+            if df_filtered.empty:
+                 return _safe_figure("No countries match the filters.", theme, height=560)
+                 
             if metric not in df_filtered.columns:
                 return _safe_figure("Selected metric is not available.", theme, height=560)
-            if df_filtered.dropna(subset=[metric]).empty:
+            
+            dff = df_filtered.dropna(subset=[metric])
+            if dff.empty:
                 return _safe_figure("No data available for the current filters.", theme, height=560)
+            
             title = f"{metric.replace('_', ' ').title()} - Global Distribution"
 
             # ---- Build the base figure (your normal behavior) ----
             if viz_type == 'choropleth':
-                fig = viz_factory.create_choropleth_map(df_filtered, metric, title, color_scheme)
+                fig = viz_factory.create_choropleth_map(dff, metric, title, color_scheme)
                 fig.update_layout(
-                    uirevision=f"main-{metric}-{viz_type}-{color_scheme}",
+                    uirevision=f"main-{metric}-{viz_type}-{color_scheme}-{str(continents)}",
                     datarevision=f"main-{metric}-{viz_type}-{color_scheme}",
                 )
 
@@ -218,7 +224,7 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
                 return viz_factory.apply_theme(fig, theme)
 
             elif viz_type == 'globe':
-                fig = viz_factory.create_3d_globe(df_filtered, metric, title, color_scheme=color_scheme)
+                fig = viz_factory.create_3d_globe(dff, metric, title, color_scheme=color_scheme)
                 fig.update_layout(
                     uirevision=f"main-{metric}-{viz_type}-{color_scheme}",
                     datarevision=f"main-{metric}-{viz_type}-{color_scheme}",
@@ -226,7 +232,7 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
                 return viz_factory.apply_theme(fig, theme)
 
             elif viz_type == 'sunburst':
-                fig = viz_factory.create_sunburst_chart(df_filtered, metric)
+                fig = viz_factory.create_sunburst_chart(dff, metric)
                 fig.update_layout(
                     uirevision=f"main-{metric}-{viz_type}-{color_scheme}",
                     datarevision=f"main-{metric}-{viz_type}-{color_scheme}",
@@ -234,15 +240,17 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
                 return viz_factory.apply_theme(fig, theme)
 
             elif viz_type == 'regional':
-                fig = viz_factory.create_regional_bar_chart(df_filtered, metric)
+                fig = viz_factory.create_regional_bar_chart(dff, metric)
                 fig.update_layout(
                     uirevision=f"main-{metric}-{viz_type}-{color_scheme}",
                     datarevision=f"main-{metric}-{viz_type}-{color_scheme}",
+                    xaxis_autorange=True,
+                    yaxis_autorange=True,
                 )
                 return viz_factory.apply_theme(fig, theme)
 
             # fallback
-            fig = viz_factory.create_choropleth_map(df_filtered, metric, title, color_scheme)
+            fig = viz_factory.create_choropleth_map(dff, metric, title, color_scheme)
             fig.update_layout(
                 uirevision=f"main-{metric}-{viz_type}-{color_scheme}",
                 datarevision=f"main-{metric}-{viz_type}-{color_scheme}",
@@ -379,6 +387,15 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
 
         try:
             df_filtered = _apply_filters(merged_data.copy(), continents, dev_levels)
+            
+            # Robust empty check
+            if df_filtered.empty:
+                return _safe_figure("No countries match filters.", theme, height=300)
+            if metric not in df_filtered.columns:
+                return _safe_figure("Metric not found.", theme, height=300)
+            if df_filtered.dropna(subset=[metric]).empty:
+                return _safe_figure("No data for current filters.", theme, height=300)
+
             fig = viz_factory.create_ranking_bar(
                 df=df_filtered,
                 metric=metric,
@@ -386,6 +403,8 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
                 n=12,
                 selected_country=selected_country,
             )
+            # Force auto-scaling so bars don't get stuck on old scale
+            fig.update_layout(xaxis_autorange=True, yaxis_autorange=True)
             return viz_factory.apply_theme(fig, theme)
         except Exception:
             logger.exception("rank-chart failed for metric=%s", metric)
@@ -410,6 +429,11 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
 
         try:
             df_filtered = _apply_filters(merged_data.copy(), continents, dev_levels)
+            
+            if df_filtered.empty:
+                return _safe_figure("No countries match filters.", theme, height=300)
+            if metric not in df_filtered.columns:
+                 return _safe_figure("Metric not found.", theme, height=300)
 
             # Smarter reference metric by domain
             domain = domain or ""
@@ -426,14 +450,22 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
             ref = reference_by_domain.get(domain, "Real_GDP_per_Capita_USD")
             if ref not in df_filtered.columns:
                 ref = "Real_GDP_per_Capita_USD" if "Real_GDP_per_Capita_USD" in df_filtered.columns else metric
+            
+            # Check for data existence
+            dff = df_filtered.dropna(subset=[metric, ref])
+            if dff.empty:
+                return _safe_figure("No valid data for scatter plot.", theme, height=300)
 
             fig = viz_factory.create_metric_vs_reference_scatter(
-                df=df_filtered,
+                df=dff,
                 metric=metric,
                 reference_metric=ref,
-                color_by="Continent" if "Continent" in df_filtered.columns else None,
+                color_by="Continent" if "Continent" in dff.columns else None,
                 selected_country=selected_country,
             )
+            
+            # Force auto-scaling
+            fig.update_layout(xaxis_autorange=True, yaxis_autorange=True)
             return viz_factory.apply_theme(fig, theme)
         except Exception:
             logger.exception("overview-scatter failed for metric=%s domain=%s", metric, domain)
@@ -485,6 +517,7 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
             if dff.empty or "Continent" not in dff.columns:
                 return _safe_figure("No data available for spread view.", theme, height=260)
 
+            label = viz_factory._label(metric) if hasattr(viz_factory, "_label") else metric
             fig = px.box(
                 dff,
                 x="Continent",
@@ -513,10 +546,18 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
 
             fig.update_layout(
                 title=dict(text="Spread Snapshot (Box plot)", x=0.01, xanchor="left"),
-                margin=dict(l=20, r=10, t=50, b=20),
+                margin=dict(l=20, r=10, t=50, b=60),
                 height=260,
+                yaxis_title=label,
             )
-            fig.update_xaxes(tickangle=0)
+            fig.update_xaxes(
+                tickangle=-25,
+                tickfont=dict(size=10),
+                ticklabeloverflow="hide past domain",
+                automargin=True,
+                categoryorder="array",
+                categoryarray=sorted(dff["Continent"].dropna().unique().tolist()),
+            )
             return viz_factory.apply_theme(fig, theme)
         except Exception:
             logger.exception("overview-spread failed for metric=%s", metric)
@@ -576,91 +617,87 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
         except Exception:
             outlier_count = None
 
-        # Compact KPI tiles
+        try:
+            mean_val = float(non_null.mean())
+        except Exception:
+            mean_val = None
+
+        try:
+            std_val = float(non_null.std())
+        except Exception:
+            std_val = None
+
+        label = viz_factory._label(metric) if hasattr(viz_factory, "_label") else metric
+
+        # Advanced "Stat Tile" Design
+        def _stat_tile(title, value, subtext=None, color="primary", icon=None):
+            return dbc.Card(
+                dbc.CardBody(
+                    [
+                        html.Div(
+                            [
+                                html.Div(title, className="text-muted small text-uppercase fw-bold mb-1"),
+                                html.H4(value, className=f"text-{color} mb-0"),
+                                html.Div(subtext, className="small text-muted mt-1") if subtext else None,
+                            ]
+                        )
+                    ],
+                    className="h-100 border-start border-4",
+                    style={"borderLeftColor": f"var(--bs-{color})"}
+                ),
+                className="shadow-sm h-100",
+                style={"border": "none", "borderRadius": "8px", "background": "rgba(255,255,255,0.05)"}
+            )
+
         kpis = dbc.Row(
             [
-                dbc.Col(
-                    dbc.Card(
-                        dbc.CardBody(
-                            [
-                                html.Div("Coverage", className="mini-kpi-label"),
-                                html.Div(f"{coverage:.0f}%", className="mini-kpi-value"),
-                            ]
-                        ),
-                        className="mini-kpi",
-                    ),
-                    width=6,
-                ),
-                dbc.Col(
-                    dbc.Card(
-                        dbc.CardBody(
-                            [
-                                html.Div("Median", className="mini-kpi-label"),
-                                html.Div(
-                                    "N/A" if median is None else f"{median:,.2f}",
-                                    className="mini-kpi-value",
-                                ),
-                            ]
-                        ),
-                        className="mini-kpi",
-                    ),
-                    width=6,
-                ),
-                dbc.Col(
-                    dbc.Card(
-                        dbc.CardBody(
-                            [
-                                html.Div("Countries", className="mini-kpi-label"),
-                                html.Div(f"{df_filtered['Country'].nunique()}", className="mini-kpi-value"),
-                            ]
-                        ),
-                        className="mini-kpi",
-                    ),
-                    width=6,
-                    className="mt-2",
-                ),
-                dbc.Col(
-                    dbc.Card(
-                        dbc.CardBody(
-                            [
-                                html.Div("Outliers", className="mini-kpi-label"),
-                                html.Div(
-                                    "N/A" if outlier_count is None else f"{outlier_count}",
-                                    className="mini-kpi-value",
-                                ),
-                            ]
-                        ),
-                        className="mini-kpi",
-                    ),
-                    width=6,
-                    className="mt-2",
-                ),
+                dbc.Col(_stat_tile("Coverage", f"{coverage:.0f}%", f"{df_filtered['Country'].nunique()} Countries", "info"), width=6, className="mb-3"),
+                dbc.Col(_stat_tile("Median", "N/A" if median is None else f"{median:,.2f}", None, "primary"), width=6, className="mb-3"),
+                dbc.Col(_stat_tile("Mean", "N/A" if mean_val is None else f"{mean_val:,.2f}", f"σ: {std_val:,.2f}" if std_val else None, "success"), width=6, className="mb-3"),
+                dbc.Col(_stat_tile("Outliers", "N/A" if outlier_count is None else str(outlier_count), "Statistically significant", "warning"), width=6, className="mb-3"),
             ],
-            className="g-2",
+            className="g-2 mb-2"
+        )
+        
+        # Advanced "Leaderboard" Design with Progress Bars
+        leaders_list = []
+        if not top.empty:
+            leader_val = top.iloc[0].get(metric)
+            # Normalize for bar width
+            max_val = leader_val if leader_val else 1
+            
+            for idx, r in top.iterrows():
+                val = r.get(metric)
+                try:
+                    pct = (val / max_val) * 100
+                except:
+                    pct = 0
+                
+                leaders_list.append(
+                    html.Div(
+                        [
+                            html.Div([html.Span(f"#{idx+1}", className="badge bg-light text-dark me-2"), r["Country"]], className="d-flex align-items-center mb-1 small fw-bold"),
+                            dbc.Progress(value=pct, color="success", style={"height": "6px"}, className="mb-1"),
+                            html.Div(f"{val:,.2f}", className="text-end small text-muted")
+                        ],
+                        className="mb-3"
+                    )
+                )
+
+        insights_layout = html.Div(
+            [
+                html.H6("🏆 Top Performers", className="text-uppercase text-muted small fw-bold mb-3"),
+                html.Div(leaders_list),
+                html.Hr(className="my-3", style={"opacity": "0.1"}),
+                html.H6("🔻 Lowest Performers", className="text-uppercase text-muted small fw-bold mb-3"),
+                html.Div(
+                    [dbc.Badge(f"{row['Country']}: {row.get(metric):,.2f}", color="danger", className="me-1 mb-1 p-2 fw-normal") for _, row in bottom.iterrows()],
+                    className="d-flex flex-wrap"
+                )
+            ]
         )
 
-        bullets = []
-        if selected_country:
-            row = df_filtered[df_filtered["Country"] == selected_country]
-            if not row.empty and metric in row.columns:
-                val = row.iloc[0].get(metric)
-                bullets.append(html.Li([html.B(selected_country), f" selected — {val}"]))
-
-        if not top.empty:
-            top_country = top.iloc[0]["Country"]
-            top_val = top.iloc[0].get(metric)
-            bullets.append(html.Li([html.B("Leader: "), f"{top_country} ({top_val})"]))
-
-        if not bottom.empty:
-            bottom_country = bottom.iloc[0]["Country"]
-            bottom_val = bottom.iloc[0].get(metric)
-            bullets.append(html.Li([html.B("Lowest: "), f"{bottom_country} ({bottom_val})"]))
-
-        bullets.append(html.Li([html.B("Top 3: "), ", ".join(top["Country"].tolist())]))
-        bullets.append(html.Li([html.B("Bottom 3: "), ", ".join(bottom["Country"].tolist())]))
-
-        parts = html.Ul(bullets, className="insights-list")
-        return kpis, parts
+        return kpis, insights_layout
 
 
     # ------------------------------------------------------------
@@ -788,9 +825,13 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
             parts.append(html.Div([html.B("Development level: "), row.get("Development_Level", "-")]))
 
         metric_val = None
+        label = viz_factory._label(metric) if metric else metric
         if metric and metric in merged_data.columns:
             metric_val = row.get(metric, None)
-            parts.append(html.Div([html.B(f"{metric.replace('_',' ').title()}: "), f"{metric_val}"]))
+            if metric_val == metric_val:
+                parts.append(html.Div([html.B(f"{label}: "), f"{metric_val:,.2f}"]))
+            else:
+                parts.append(html.Div([html.B(f"{label}: "), "N/A"]))
 
         # KPI chips
         def _chip(label, value, tone="primary"):
@@ -801,23 +842,84 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
                 pill=True,
             )
 
-        chips = []
-        if metric:
-            chips.append(_chip("Metric", metric.replace("_", " "), "info"))
-        if metric_val is not None:
-            chips.append(_chip("Value", metric_val, "primary"))
-        if "Real_GDP_per_Capita_USD" in merged_data.columns:
-            gdp = row.get("Real_GDP_per_Capita_USD", None)
-            if gdp is not None and gdp == gdp:
-                chips.append(_chip("GDP/Cap", f"${float(gdp):,.0f}", "success"))
-        if "Total_Population" in merged_data.columns:
-            pop = row.get("Total_Population", None)
-            if pop is not None and pop == pop:
-                chips.append(_chip("Pop", f"{float(pop)/1e6:.1f}M", "secondary"))
+        # Global/continent ranks
+        global_rank = None
+        percentile = None
+        cont_rank = None
+        try:
+            if metric and metric in merged_data.columns:
+                df_valid = merged_data.dropna(subset=["Country", metric]).copy()
+                if not df_valid.empty and selected_country in df_valid["Country"].values:
+                    df_valid["__rank"] = df_valid[metric].rank(ascending=False, method="min")
+                    global_rank = int(df_valid.loc[df_valid["Country"] == selected_country, "__rank"].iloc[0])
+                    percentile = float(df_valid[metric].rank(pct=True).loc[df_valid["Country"] == selected_country].iloc[0] * 100)
 
-        kpi_row = html.Div(chips, className="details-kpis-row")
+                    cont = row.get("Continent", None)
+                    if cont and "Continent" in df_valid.columns:
+                        cont_df = df_valid[df_valid["Continent"] == cont].copy()
+                        cont_df["__rank"] = cont_df[metric].rank(ascending=False, method="min")
+                        cont_rank = int(cont_df.loc[cont_df["Country"] == selected_country, "__rank"].iloc[0])
+        except Exception:
+            global_rank = None
+            percentile = None
+            cont_rank = None
 
-        table = dbc.ListGroup([dbc.ListGroupItem(p) for p in parts])
+        # Build Advanced "Player Profile" Card
+        profile_header = html.Div(
+            [
+                html.H4(selected_country, className="mb-0 fw-bold text-primary"),
+                html.Div(f"{row.get('Continent', 'Unknown Continent')}", className="text-muted small text-uppercase spacing-1"),
+            ],
+            className="text-center mb-3 mt-2"
+        )
+        
+        main_stat = html.Div(
+            [
+                html.Div("Main Indicator", className="small text-muted text-uppercase mb-1"),
+                html.H2(f"{metric_val:,.2f}" if metric_val else "N/A", className="display-6 fw-bold mb-1"),
+                html.Div(label, className="text-muted small mb-3"),
+                dbc.Progress(value=percentile if percentile else 0, color="info" if percentile and percentile > 50 else "warning", className="mb-2", style={"height": "5px"}),
+                html.Div(f"Better than {percentile:,.0f}% of countries" if percentile else "", className="small text-end text-muted fst-italic")
+            ],
+            className="text-center p-3 bg-light rounded-3 mb-3 border",
+            style={"background": "linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.0) 100%)"}
+        )
+
+        ranks_grid = dbc.Row(
+            [
+                dbc.Col(
+                    html.Div([
+                        html.Div("Global Rank", className="small text-muted"),
+                        html.H5(f"#{global_rank}" if global_rank else "-", className="mb-0")
+                    ], className="text-center border-end"), width=6
+                ),
+                dbc.Col(
+                    html.Div([
+                        html.Div(f"{row.get('Continent')[:3]} Rank", className="small text-muted"),
+                        html.H5(f"#{cont_rank}" if cont_rank else "-", className="mb-0")
+                    ], className="text-center"), width=6
+                ),
+            ],
+            className="mb-3 g-0"
+        )
+        
+        secondary_stats = dbc.ListGroup(
+            [
+                dbc.ListGroupItem([html.Span("GDP/Cap", className="text-muted small"), html.Span(f"${row.get('Real_GDP_per_Capita_USD', 0):,.0f}", className="float-end fw-bold")], className="d-flex justify-content-between align-items-center px-0 py-2 border-0 border-bottom"),
+                dbc.ListGroupItem([html.Span("Population", className="text-muted small"), html.Span(f"{row.get('Total_Population', 0)/1e6:,.1f}M", className="float-end fw-bold")], className="d-flex justify-content-between align-items-center px-0 py-2 border-0 border-bottom"),
+                dbc.ListGroupItem([html.Span("Dev Level", className="text-muted small"), html.Span(f"{row.get('Development_Level', '-')}", className="float-end fw-bold")], className="d-flex justify-content-between align-items-center px-0 py-2 border-0"),
+            ],
+            flush=True,
+            className="small"
+        )
+
+        
+        # Assemble the Profile Card
+        profile_card = dbc.Card(
+            dbc.CardBody([profile_header, main_stat, ranks_grid, secondary_stats]),
+            className="shadow-sm border-0",
+            style={"borderRadius": "12px"}
+        )
 
         # Mini contextual chart: selected vs continent mean vs global mean
         fig = go.Figure()
@@ -836,37 +938,46 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
 
             bars_x = []
             bars_y = []
-            if metric_val is not None and metric_val == metric_val:
+            if metric_val is not None:
                 bars_x.append("Selected")
                 bars_y.append(float(metric_val))
             if cont_mean is not None:
-                bars_x.append("Continent avg")
+                bars_x.append("Cont. Avg")
                 bars_y.append(cont_mean)
             if global_mean is not None:
-                bars_x.append("Global avg")
+                bars_x.append("Global Avg")
                 bars_y.append(global_mean)
 
             fig.add_trace(
                 go.Bar(
                     x=bars_x,
                     y=bars_y,
-                    marker=dict(color=["rgba(255,107,107,0.92)"] + ["rgba(33,150,243,0.75)"] * (len(bars_x) - 1)),
-                    hovertemplate="%{x}<br>%{y:,.2f}<extra></extra>",
+                    marker=dict(color=["#0d6efd", "#6c757d", "#adb5bd"]),
+                    # hovertemplate="%{x}<br>%{y:,.2f}<extra></extra>",
                 )
             )
 
             fig.update_layout(
-                margin=dict(l=10, r=10, t=20, b=10),
-                height=220,
-                title=dict(text=(metric or "").replace("_", " "), x=0.01, xanchor="left"),
+                margin=dict(l=10, r=10, t=10, b=10),
+                height=140,
+                showlegend=False,
+                xaxis=dict(showgrid=False),
+                yaxis=dict(showgrid=True, gridcolor="rgba(0,0,0,0.05)"),
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)"
             )
         except Exception:
             logger.exception("details mini chart failed for country=%s metric=%s", selected_country, metric)
-            fig = _safe_figure("Unable to render mini chart.", theme, height=220)
+            fig = _safe_figure("Unable to render mini chart.", theme, height=140)
 
         fig = viz_factory.apply_theme(fig, theme) if isinstance(fig, go.Figure) else fig
 
-        return f"Selected: {selected_country}", table, kpi_row, fig
+        # Return structured output
+        # summary -> profile_card (children)
+        # table -> None (we integrated it)
+        # kpis -> None (we integrated it)
+        
+        return profile_card, None, None, fig
 
 
     # ------------------------------------------------------------

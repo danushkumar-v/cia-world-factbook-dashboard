@@ -248,15 +248,15 @@ def create_filters_panel(metrics_info, default_metric=None, default_domain=None)
                             dcc.Dropdown(
                                 id="color-scheme-selector",
                                 options=[
-                                    {"label": "Viridis (default)", "value": "Viridis"},
-                                    {"label": "Blues", "value": "Blues"},
+                                    {"label": "Blues (Sequential)", "value": "Blues"},
+                                    {"label": "Viridis", "value": "Viridis"},
                                     {"label": "Reds", "value": "Reds"},
                                     {"label": "Greens", "value": "Greens"},
                                     {"label": "Plasma", "value": "Plasma"},
                                     {"label": "Inferno", "value": "Inferno"},
                                     {"label": "Rainbow (discouraged)", "value": "Rainbow"},
                                 ],
-                                value="Viridis",
+                                value="Blues",
                                 clearable=False,
                                 className="mb-2",
                             ),

@@ -31,7 +31,7 @@ class VisualizationFactory:
                 bordercolor="rgba(255,255,255,0.18)" if is_dark else "rgba(17,24,39,0.18)",
                 font=dict(color="rgba(255,255,255,0.92)" if is_dark else "rgba(17,24,39,0.92)"),
             ),
-            transition=dict(duration=350, easing="cubic-in-out"),
+            # transition=dict(duration=350, easing="cubic-in-out"), # DISABLED to fix rendering artifacts
         )
         # Only set uirevision when not already defined by the caller
         if getattr(fig.layout, "uirevision", None) is None:
@@ -95,7 +95,7 @@ class VisualizationFactory:
         df: pd.DataFrame,
         metric: str,
         title: str,
-        color_scheme: str = "Viridis",
+        color_scheme: str = "Blues",
         projection: str = "natural earth",
     ) -> go.Figure:
 

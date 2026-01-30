@@ -59,7 +59,7 @@ def create_layout(merged_data, metrics_info, country_list):
         locations="Country",
         color=default_metric,
         hover_name=hover_col,
-        color_continuous_scale="Viridis",
+        color_continuous_scale="Blues",
         projection="natural earth",
         title=f"{default_metric} (default view)",
     )
