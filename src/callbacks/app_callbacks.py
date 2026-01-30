@@ -58,7 +58,8 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
     @app.callback(
         Output('metric-selector', 'options'),
         Output('metric-selector', 'value'),
-        Input('domain-selector', 'value')
+        Input('domain-selector', 'value'),
+        prevent_initial_call=False,
     )
     def update_metric_options(domain):
         """Update metric options based on selected domain"""
@@ -67,11 +68,19 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
             options = [{'label': m['label'], 'value': m['name']} for m in metrics]
             default_value = metrics[0]['name'] if metrics else None
             return options, default_value
+        # Return first domain's metrics if domain is None
+        first_domain = next(iter(metrics_info)) if metrics_info else None
+        if first_domain:
+            metrics = metrics_info[first_domain]
+            options = [{'label': m['label'], 'value': m['name']} for m in metrics]
+            default_value = metrics[0]['name'] if metrics else None
+            return options, default_value
         return [], None
 
     @app.callback(
         Output('comparison-metric-selector', 'options'),
-        Input('domain-selector', 'value')
+        Input('domain-selector', 'value'),
+        prevent_initial_call=False,
     )
     def update_comparison_metrics(domain):
         """Update comparison metrics options"""
@@ -86,7 +95,8 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
         Output('correlation-y-selector', 'options'),
         Output('correlation-x-selector', 'value'),
         Output('correlation-y-selector', 'value'),
-        Input('domain-selector', 'value')
+        Input('domain-selector', 'value'),
+        prevent_initial_call=False,
     )
     def update_correlation_options(domain):
         """Update correlation metric options"""
@@ -103,7 +113,8 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
     @app.callback(
         Output('continent-filter', 'options'),
         Output('development-filter', 'options'),
-        Input('domain-selector', 'value')
+        Input('domain-selector', 'value'),
+        prevent_initial_call=False,
     )
     def update_filter_options(domain):
         """Update filter dropdown options"""
@@ -128,16 +139,16 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
 
     @app.callback(
         Output('main-visualization', 'figure'),
-        Input('apply-filters-btn', 'n_clicks'),
+        Input('metric-selector', 'value'),
+        Input('viz-type-selector', 'value'),
+        Input('color-scheme-selector', 'value'),
+        Input('continent-filter', 'value'),
+        Input('development-filter', 'value'),
         Input('selected-country', 'data'),
         Input('ui-theme', 'data'),
-        State('metric-selector', 'value'),
-        State('viz-type-selector', 'value'),
-        State('color-scheme-selector', 'value'),
-        State('continent-filter', 'value'),
-        State('development-filter', 'value'),
+        prevent_initial_call=False,
     )
-    def update_main_visualization(n_clicks, selected_country, theme, metric, viz_type, color_scheme, continents, dev_levels):
+    def update_main_visualization(metric, viz_type, color_scheme, continents, dev_levels, selected_country, theme):
         """Update main visualization (heavy). Hover effects are handled by a separate overlay."""
 
         if not metric:
@@ -188,13 +199,13 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
 
     @app.callback(
         Output('comparison-chart', 'figure'),
-        Input('compare-btn', 'n_clicks'),
+        Input('countries-selector', 'value'),
+        Input('comparison-metric-selector', 'value'),
+        Input('comparison-chart-type', 'value'),
         Input('ui-theme', 'data'),
-        State('countries-selector', 'value'),
-        State('comparison-metric-selector', 'value'),
-        State('comparison-chart-type', 'value'),
+        prevent_initial_call=False,
     )
-    def update_comparison_chart(n_clicks, theme, countries, metrics, chart_type):
+    def update_comparison_chart(countries, metrics, chart_type, theme):
         """Update country comparison chart"""
         try:
             # Normalize inputs
@@ -239,14 +250,14 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
     @app.callback(
         Output('correlation-chart', 'figure'),
         Output('heatmap-chart', 'figure'),
-        Input('correlation-btn', 'n_clicks'),
+        Input('correlation-x-selector', 'value'),
+        Input('correlation-y-selector', 'value'),
+        Input('correlation-color-selector', 'value'),
+        Input('correlation-groupby-selector', 'value'),
         Input('ui-theme', 'data'),
-        State('correlation-x-selector', 'value'),
-        State('correlation-y-selector', 'value'),
-        State('correlation-color-selector', 'value'),
-        State('correlation-groupby-selector', 'value'),
+        prevent_initial_call=False,
     )
-    def update_correlation_chart(n_clicks, theme, x_metric, y_metric, color_by, facet_by):
+    def update_correlation_chart(x_metric, y_metric, color_by, facet_by, theme):
         """Update correlation scatter plot"""
         if not x_metric or not y_metric:
             raise PreventUpdate
@@ -276,6 +287,7 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
         Output('regional-chart', 'figure'),
         Input('metric-selector', 'value'),
         Input('ui-theme', 'data'),
+        prevent_initial_call=False,
     )
     def update_regional_chart(metric, theme):
         """Update regional comparison chart"""
@@ -298,6 +310,7 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
         Input("development-filter", "value"),
         Input("selected-country", "data"),
         Input("ui-theme", "data"),
+        prevent_initial_call=False,
     )
     def update_rank_chart(metric, continents, dev_levels, selected_country, theme):
         if not metric:
@@ -326,6 +339,7 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
         Input("development-filter", "value"),
         Input("selected-country", "data"),
         Input("ui-theme", "data"),
+        prevent_initial_call=False,
     )
     def update_overview_scatter(metric, domain, continents, dev_levels, selected_country, theme):
         if not metric:
@@ -369,6 +383,7 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
         Input("continent-filter", "value"),
         Input("development-filter", "value"),
         Input("ui-theme", "data"),
+        prevent_initial_call=False,
     )
     def update_overview_regional(metric, continents, dev_levels, theme):
         if not metric:
@@ -391,6 +406,7 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
         Input("development-filter", "value"),
         Input("selected-country", "data"),
         Input("ui-theme", "data"),
+        prevent_initial_call=False,
     )
     def update_overview_spread(metric, continents, dev_levels, selected_country, theme):
         if not metric:
@@ -429,19 +445,11 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
                     )
 
             fig.update_layout(
-                title=dict(text="Spread Snapshot (Box plot)", x=0.01, xanchor="left", font=dict(size=13)),
-                margin=dict(l=55, r=10, t=50, b=65),
+                title=dict(text="Spread Snapshot (Box plot)", x=0.01, xanchor="left"),
+                margin=dict(l=20, r=10, t=50, b=20),
                 height=260,
-                xaxis=dict(
-                    tickangle=-45,
-                    tickfont=dict(size=11),
-                    title=dict(text="Continent", font=dict(size=12)),
-                ),
-                yaxis=dict(
-                    tickfont=dict(size=11),
-                    title=dict(font=dict(size=12)),
-                ),
             )
+            fig.update_xaxes(tickangle=0)
             return viz_factory.apply_theme(fig, theme)
         except Exception:
             logger.exception("overview-spread failed for metric=%s", metric)
@@ -458,6 +466,7 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
         Input("continent-filter", "value"),
         Input("development-filter", "value"),
         Input("selected-country", "data"),
+        prevent_initial_call=False,
     )
     def update_insights(metric, continents, dev_levels, selected_country):
         if not metric:
@@ -495,23 +504,18 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
         except Exception:
             outlier_count = None
 
-        # Compact KPI tiles with visual enhancements
+        # Compact KPI tiles
         kpis = dbc.Row(
             [
                 dbc.Col(
                     dbc.Card(
                         dbc.CardBody(
                             [
-                                html.Div(
-                                    [
-                                        html.Span("📊 ", style={"fontSize": "0.85rem"}),
-                                        html.Span("Coverage", className="mini-kpi-label"),
-                                    ]
-                                ),
-                                html.Div(f"{coverage:.0f}%", className="mini-kpi-value", style={"color": "#10b981" if coverage >= 80 else "#f59e0b" if coverage >= 60 else "#ef4444"}),
+                                html.Div("Coverage", className="mini-kpi-label"),
+                                html.Div(f"{coverage:.0f}%", className="mini-kpi-value"),
                             ]
                         ),
-                        className="mini-kpi mini-kpi-coverage",
+                        className="mini-kpi",
                     ),
                     width=6,
                 ),
@@ -519,20 +523,14 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
                     dbc.Card(
                         dbc.CardBody(
                             [
+                                html.Div("Median", className="mini-kpi-label"),
                                 html.Div(
-                                    [
-                                        html.Span("📈 ", style={"fontSize": "0.85rem"}),
-                                        html.Span("Median", className="mini-kpi-label"),
-                                    ]
-                                ),
-                                html.Div(
-                                    "—" if median is None else f"{median:,.1f}",
+                                    "N/A" if median is None else f"{median:,.2f}",
                                     className="mini-kpi-value",
-                                    style={"color": "#3b82f6"},
                                 ),
                             ]
                         ),
-                        className="mini-kpi mini-kpi-median",
+                        className="mini-kpi",
                     ),
                     width=6,
                 ),
@@ -540,16 +538,11 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
                     dbc.Card(
                         dbc.CardBody(
                             [
-                                html.Div(
-                                    [
-                                        html.Span("🌍 ", style={"fontSize": "0.85rem"}),
-                                        html.Span("Countries", className="mini-kpi-label"),
-                                    ]
-                                ),
-                                html.Div(f"{df_filtered['Country'].nunique()}", className="mini-kpi-value", style={"color": "#8b5cf6"}),
+                                html.Div("Countries", className="mini-kpi-label"),
+                                html.Div(f"{df_filtered['Country'].nunique()}", className="mini-kpi-value"),
                             ]
                         ),
-                        className="mini-kpi mini-kpi-countries",
+                        className="mini-kpi",
                     ),
                     width=6,
                     className="mt-2",
@@ -558,20 +551,14 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
                     dbc.Card(
                         dbc.CardBody(
                             [
+                                html.Div("Outliers", className="mini-kpi-label"),
                                 html.Div(
-                                    [
-                                        html.Span("⚠️ ", style={"fontSize": "0.85rem"}),
-                                        html.Span("Outliers", className="mini-kpi-label"),
-                                    ]
-                                ),
-                                html.Div(
-                                    "—" if outlier_count is None else f"{outlier_count}",
+                                    "N/A" if outlier_count is None else f"{outlier_count}",
                                     className="mini-kpi-value",
-                                    style={"color": "#ec4899"},
                                 ),
                             ]
                         ),
-                        className="mini-kpi mini-kpi-outliers",
+                        className="mini-kpi",
                     ),
                     width=6,
                     className="mt-2",
@@ -585,73 +572,22 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
             row = df_filtered[df_filtered["Country"] == selected_country]
             if not row.empty and metric in row.columns:
                 val = row.iloc[0].get(metric)
-                formatted_val = f"{val:,.2f}" if isinstance(val, (int, float)) else str(val)
-                bullets.append(
-                    html.Div(
-                        [
-                            html.Span("🎯 ", style={"marginRight": "0.35rem"}),
-                            html.Span(selected_country, style={"fontWeight": "700", "color": "#ef4444"}),
-                            html.Span(" selected — ", style={"opacity": "0.7"}),
-                            html.Span(formatted_val, style={"fontWeight": "600"}),
-                        ],
-                        className="insight-item insight-selected"
-                    )
-                )
+                bullets.append(html.Li([html.B(selected_country), f" selected — {val}"]))
 
         if not top.empty:
             top_country = top.iloc[0]["Country"]
             top_val = top.iloc[0].get(metric)
-            formatted_top = f"{top_val:,.2f}" if isinstance(top_val, (int, float)) else str(top_val)
-            bullets.append(
-                html.Div(
-                    [
-                        html.Span("🏆 ", style={"marginRight": "0.35rem"}),
-                        html.Span("Leader: ", style={"fontWeight": "600", "opacity": "0.8"}),
-                        html.Span(top_country, style={"fontWeight": "700", "color": "#10b981"}),
-                        html.Span(f" ({formatted_top})", style={"opacity": "0.7", "fontSize": "0.9rem"}),
-                    ],
-                    className="insight-item"
-                )
-            )
+            bullets.append(html.Li([html.B("Leader: "), f"{top_country} ({top_val})"]))
 
         if not bottom.empty:
             bottom_country = bottom.iloc[0]["Country"]
             bottom_val = bottom.iloc[0].get(metric)
-            formatted_bottom = f"{bottom_val:,.2f}" if isinstance(bottom_val, (int, float)) else str(bottom_val)
-            bullets.append(
-                html.Div(
-                    [
-                        html.Span("📉 ", style={"marginRight": "0.35rem"}),
-                        html.Span("Lowest: ", style={"fontWeight": "600", "opacity": "0.8"}),
-                        html.Span(bottom_country, style={"fontWeight": "700", "color": "#f59e0b"}),
-                        html.Span(f" ({formatted_bottom})", style={"opacity": "0.7", "fontSize": "0.9rem"}),
-                    ],
-                    className="insight-item"
-                )
-            )
+            bullets.append(html.Li([html.B("Lowest: "), f"{bottom_country} ({bottom_val})"]))
 
-        bullets.append(
-            html.Div(
-                [
-                    html.Span("🔝 ", style={"marginRight": "0.35rem"}),
-                    html.Span("Top 3: ", style={"fontWeight": "600", "opacity": "0.8"}),
-                    html.Span(", ".join(top["Country"].tolist()), style={"fontWeight": "500"}),
-                ],
-                className="insight-item"
-            )
-        )
-        bullets.append(
-            html.Div(
-                [
-                    html.Span("🔻 ", style={"marginRight": "0.35rem"}),
-                    html.Span("Bottom 3: ", style={"fontWeight": "600", "opacity": "0.8"}),
-                    html.Span(", ".join(bottom["Country"].tolist()), style={"fontWeight": "500"}),
-                ],
-                className="insight-item"
-            )
-        )
+        bullets.append(html.Li([html.B("Top 3: "), ", ".join(top["Country"].tolist())]))
+        bullets.append(html.Li([html.B("Bottom 3: "), ", ".join(bottom["Country"].tolist())]))
 
-        parts = html.Div(bullets, className="insights-list")
+        parts = html.Ul(bullets, className="insights-list")
         return kpis, parts
 
 
@@ -664,6 +600,7 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
         Input("metric-selector", "value"),
         Input("continent-filter", "value"),
         Input("development-filter", "value"),
+        prevent_initial_call=False,
     )
     def update_data_table(metric, continents, dev_levels):
         if not metric:
@@ -727,11 +664,12 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
         Output("countries-selector", "value"),
         Input("selected-countries", "data"),
         State("countries-selector", "value"),
+        prevent_initial_call=True,
     )
     def sync_comparison_countries(selected_countries, current_value):
         """Keep comparison selector in sync with map-based selection."""
         if not selected_countries:
-            return current_value
+            return no_update
         return selected_countries
 
 
@@ -744,8 +682,9 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
         Output("details-kpis", "children"),
         Output("details-mini-chart", "figure"),
         Input("selected-country", "data"),
-        State("metric-selector", "value"),
-        State("ui-theme", "data"),
+        Input("metric-selector", "value"),
+        Input("ui-theme", "data"),
+        prevent_initial_call=False,
     )
     def update_details_panel(selected_country, metric, theme):
         if not selected_country:
@@ -767,84 +706,44 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
 
         # Show the current main metric + a couple of helpful metadata fields
         parts = [
-            html.Div(
-                [
-                    html.Span("🌐 ", style={"marginRight": "0.5rem", "fontSize": "1rem"}),
-                    html.Span("Country: ", style={"fontWeight": "600", "opacity": "0.75"}),
-                    html.Span(row.get("Country", selected_country), style={"fontWeight": "700", "color": "#6366f1"}),
-                ],
-                className="detail-row"
-            ),
+            html.Div([html.B("Country: "), row.get("Country", selected_country)]),
         ]
         if "Continent" in merged_data.columns:
-            parts.append(
-                html.Div(
-                    [
-                        html.Span("🗺️ ", style={"marginRight": "0.5rem", "fontSize": "1rem"}),
-                        html.Span("Continent: ", style={"fontWeight": "600", "opacity": "0.75"}),
-                        html.Span(row.get("Continent", "-"), style={"fontWeight": "600"}),
-                    ],
-                    className="detail-row"
-                )
-            )
+            parts.append(html.Div([html.B("Continent: "), row.get("Continent", "-")]))
         if "Development_Level" in merged_data.columns:
-            dev_level = row.get("Development_Level", "-")
-            dev_color = "#10b981" if "High" in str(dev_level) else "#f59e0b" if "Middle" in str(dev_level) else "#6b7280"
-            parts.append(
-                html.Div(
-                    [
-                        html.Span("📊 ", style={"marginRight": "0.5rem", "fontSize": "1rem"}),
-                        html.Span("Development level: ", style={"fontWeight": "600", "opacity": "0.75"}),
-                        html.Span(dev_level, style={"fontWeight": "600", "color": dev_color}),
-                    ],
-                    className="detail-row"
-                )
-            )
+            parts.append(html.Div([html.B("Development level: "), row.get("Development_Level", "-")]))
 
         metric_val = None
         if metric and metric in merged_data.columns:
             metric_val = row.get(metric, None)
-            formatted_val = f"{metric_val:,.2f}" if isinstance(metric_val, (int, float)) else str(metric_val)
-            parts.append(
-                html.Div(
-                    [
-                        html.Span("📈 ", style={"marginRight": "0.5rem", "fontSize": "1rem"}),
-                        html.Span(f"{metric.replace('_',' ').title()}: ", style={"fontWeight": "600", "opacity": "0.75"}),
-                        html.Span(formatted_val, style={"fontWeight": "700", "color": "#3b82f6"}),
-                    ],
-                    className="detail-row"
-                )
-            )
+            parts.append(html.Div([html.B(f"{metric.replace('_',' ').title()}: "), f"{metric_val}"]))
 
-        # KPI chips with better styling
-        def _chip(icon, label, value, color_hex):
-            return html.Div(
-                [
-                    html.Span(icon + " ", style={"fontSize": "0.9rem"}),
-                    html.Span(label + ": ", style={"fontSize": "0.7rem", "fontWeight": "600", "opacity": "0.7", "textTransform": "uppercase", "letterSpacing": "0.05em"}),
-                    html.Span(str(value), style={"fontSize": "0.85rem", "fontWeight": "700", "color": color_hex}),
-                ],
-                className="detail-chip-enhanced"
+        # KPI chips
+        def _chip(label, value, tone="primary"):
+            return dbc.Badge(
+                [html.Span(label + ": ", className="chip-label"), html.Span(str(value), className="chip-value")],
+                color=tone,
+                className="detail-chip",
+                pill=True,
             )
 
         chips = []
         if metric:
-            chips.append(_chip("🎯", "Metric", metric.replace("_", " "), "#06b6d4"))
+            chips.append(_chip("Metric", metric.replace("_", " "), "info"))
         if metric_val is not None:
-            formatted_metric_val = f"{metric_val:,.1f}" if isinstance(metric_val, (int, float)) else str(metric_val)
-            chips.append(_chip("📊", "Value", formatted_metric_val, "#6366f1"))
+            chips.append(_chip("Value", metric_val, "primary"))
         if "Real_GDP_per_Capita_USD" in merged_data.columns:
             gdp = row.get("Real_GDP_per_Capita_USD", None)
             if gdp is not None and gdp == gdp:
-                chips.append(_chip("💰", "GDP/Cap", f"${float(gdp):,.0f}", "#10b981"))
+                chips.append(_chip("GDP/Cap", f"${float(gdp):,.0f}", "success"))
         if "Total_Population" in merged_data.columns:
             pop = row.get("Total_Population", None)
             if pop is not None and pop == pop:
-                chips.append(_chip("👥", "Pop", f"{float(pop)/1e6:.1f}M", "#8b5cf6"))
+                chips.append(_chip("Pop", f"{float(pop)/1e6:.1f}M", "secondary"))
 
         kpi_row = html.Div(chips, className="details-kpis-row")
 
-        table = html.Div([p for p in parts], className="details-info-list")
+        table = dbc.ListGroup([dbc.ListGroupItem(p) for p in parts])
 
         # Mini contextual chart: selected vs continent mean vs global mean
         fig = go.Figure()
@@ -877,33 +776,15 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
                 go.Bar(
                     x=bars_x,
                     y=bars_y,
-                    marker=dict(
-                        color=["#ef4444", "#3b82f6", "#10b981"][:len(bars_x)],
-                        line=dict(width=0)
-                    ),
-                    text=[f"{v:,.0f}" if v > 1000 else f"{v:,.1f}" for v in bars_y],
-                    textposition="outside",
-                    textfont=dict(size=12, weight=700),
+                    marker=dict(color=["rgba(255,107,107,0.92)"] + ["rgba(33,150,243,0.75)"] * (len(bars_x) - 1)),
                     hovertemplate="%{x}<br>%{y:,.2f}<extra></extra>",
                 )
             )
 
             fig.update_layout(
-                margin=dict(l=50, r=25, t=40, b=45),
+                margin=dict(l=10, r=10, t=20, b=10),
                 height=220,
-                title=dict(text=(metric or "").replace("_", " "), x=0.01, xanchor="left", font=dict(size=12, weight=600)),
-                xaxis=dict(
-                    tickfont=dict(size=11),
-                    tickangle=-20,
-                    title=dict(font=dict(size=11)),
-                ),
-                yaxis=dict(
-                    tickfont=dict(size=11),
-                    showgrid=True,
-                    gridcolor="rgba(0,0,0,0.05)",
-                    title=dict(font=dict(size=11)),
-                ),
-                bargap=0.3,
+                title=dict(text=(metric or "").replace("_", " "), x=0.01, xanchor="left"),
             )
         except Exception:
             logger.exception("details mini chart failed for country=%s metric=%s", selected_country, metric)
@@ -919,17 +800,17 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
     # ------------------------------------------------------------
     @app.callback(
         Output("distribution-chart", "figure"),
-        Input("distribution-btn", "n_clicks"),
-        State("distribution-metric", "value"),
-        State("distribution-idiom", "value"),
-        State("distribution-bins", "value"),
-        State("distribution-show-points", "value"),
-        State("continent-filter", "value"),
-        State("development-filter", "value"),
-        State("selected-country", "data"),
-        State("ui-theme", "data"),
+        Input("distribution-metric", "value"),
+        Input("distribution-idiom", "value"),
+        Input("distribution-bins", "value"),
+        Input("distribution-show-points", "value"),
+        Input("continent-filter", "value"),
+        Input("development-filter", "value"),
+        Input("selected-country", "data"),
+        Input("ui-theme", "data"),
+        prevent_initial_call=False,
     )
-    def update_distribution(n_clicks, metric, idiom, bins, show_points, continents, dev_levels, selected_country, theme):
+    def update_distribution(metric, idiom, bins, show_points, continents, dev_levels, selected_country, theme):
         if not metric:
             raise PreventUpdate
 

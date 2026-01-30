@@ -281,13 +281,8 @@ def create_filters_panel(metrics_info):
             ),
 
             html.Div(style={"height": "0.75rem"}),
-            html.Button(
-                "Apply",
-                id="apply-filters-btn",
-                className="btn-custom-primary w-100",
-            ),
             html.Div(
-                "Tip: Click countries on the map to build a comparison set.",
+                "✨ Changes apply instantly. Click countries on the map to build a comparison set.",
                 className="sidebar-tip",
             ),
         ],
@@ -338,10 +333,10 @@ def create_comparison_panel(country_list):
                 ],
                 className="control-group",
             ),
-            html.Button(
-                "Compare Countries",
-                id="compare-btn",
-                className="btn-custom-primary w-100",
+            html.Div(
+                "💡 Charts update automatically as you select.",
+                className="text-muted small mt-2",
+                style={"fontStyle": "italic"},
             ),
         ],
         className="controls-panel",
@@ -409,10 +404,10 @@ def create_correlation_panel():
                 className="control-group",
             ),
 
-            html.Button(
-                "Generate Scatter Plot",
-                id="correlation-btn",
-                className="btn-custom-primary w-100",
+            html.Div(
+                "💡 Scatter plot updates automatically.",
+                className="text-muted small mt-2",
+                style={"fontStyle": "italic"},
             ),
         ],
         className="controls-panel",
@@ -491,10 +486,10 @@ def create_distribution_panel(metrics_info):
                 className="control-group",
             ),
 
-            html.Button(
-                "Generate Distribution",
-                id="distribution-btn",
-                className="btn-custom-primary w-100",
+            html.Div(
+                "💡 Distribution updates automatically.",
+                className="text-muted small mt-2",
+                style={"fontStyle": "italic"},
             ),
         ],
         className="controls-panel",
