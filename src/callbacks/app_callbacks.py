@@ -151,8 +151,20 @@ def register_callbacks(app, merged_data, metrics_info, viz_factory):
     def update_main_visualization(metric, viz_type, color_scheme, continents, dev_levels, selected_country, theme):
         """Update main visualization (heavy). Hover effects are handled by a separate overlay."""
 
+        # Use default metric if none selected
         if not metric:
-            raise PreventUpdate
+            # Get first available metric from first category
+            first_category = next(iter(metrics_info), None)
+            if first_category and metrics_info[first_category]:
+                metric = metrics_info[first_category][0].get('name')
+            if not metric:
+                return _safe_figure("Please select a metric to visualize.", theme, height=560)
+
+        # Use default values for viz_type and color_scheme if not provided
+        if not viz_type:
+            viz_type = 'choropleth'
+        if not color_scheme:
+            color_scheme = 'Viridis'
 
         try:
             df_filtered = _apply_filters(merged_data.copy(), continents, dev_levels)
